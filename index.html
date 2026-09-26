@@ -128,7 +128,7 @@ let CONFIG = null;
 const CONFIG_API =
 "https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-config";
 const WORDS_API =
-  "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-test&student=Test%2001";
+  "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-test&student=Test%2001&day=1";
 let WORDS = [];
 
 
@@ -258,11 +258,23 @@ WORDS = await new Promise(function(resolve, reject) {
     }
   }
 
-  window[callbackName] = function(data) {
+window[callbackName] = function(data) {
 
-    cleanup();
-    resolve(data);
-  };
+  cleanup();
+
+  // DAY 7 / DAY 14: không còn RED => nghỉ
+  if (data.rest === true) {
+    resolve([]);
+    return;
+  }
+
+  if (!Array.isArray(data.words)) {
+    reject(new Error("Invalid FINAL data"));
+    return;
+  }
+
+  resolve(data.words);
+};
 
   script.onerror = function() {
 
@@ -280,8 +292,14 @@ WORDS = await new Promise(function(resolve, reject) {
   document.head.appendChild(script);
 });
 
-if (!Array.isArray(WORDS) || WORDS.length === 0) {
-  throw new Error("CORE_300 empty");
+if (!Array.isArray(WORDS)) {
+  throw new Error("FINAL WORDS invalid");
+}
+
+if (WORDS.length === 0) {
+  startBtn.disabled = false;
+  startBtn.textContent = "NO RED – REST TODAY";
+  return;
 }
 
 // Đổi tên STT từ API thành coreId mà engine hiện tại đang dùng
