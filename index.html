@@ -1162,7 +1162,21 @@ function finishTest() {
 
   document.getElementById("status").textContent =
     "FINAL TEST COMPLETE";
-
+fetch("https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec", {
+  method: "POST",
+  mode: "no-cors",
+  headers: {
+    "Content-Type": "text/plain;charset=utf-8"
+  },
+  body: JSON.stringify({
+    api: "final-submit",
+    studentId: "Test 01",
+    day: Number(WORDS[0] && WORDS[0].day) || 1,
+    results: finalResults
+  })
+}).catch(function(err) {
+  console.error("FINAL submit failed:", err);
+});
   document.getElementById("stopBtn").style.display =
     "none";
 }
