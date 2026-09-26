@@ -1,34 +1,202 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>IEC - Speech Test</title>
+<title>IEC – FINAL TEST</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+  margin: 0;
+  padding: 20px;
+}
+
+.box {
+  max-width: 680px;
+  margin: 30px auto;
+  background: white;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+
+h1 {
+  margin-top: 0;
+}
+
+#progress {
+  color: #666;
+  margin-bottom: 25px;
+}
+
+.label {
+  color: #666;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
+#vietnamese {
+  font-size: 34px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+#timer {
+  font-size: 44px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+#heard {
+  font-size: 22px;
+  min-height: 32px;
+  margin-top: 8px;
+}
+
+#status {
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 30px;
+  margin-top: 22px;
+}
+
+button {
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+#startBtn {
+  background: #1a73e8;
+  color: white;
+}
+
+#stopBtn {
+  background: #b3261e;
+  color: white;
+  display: none;
+}
+
+.note {
+  margin-top: 25px;
+  color: #777;
+  font-size: 13px;
+}
+</style>
 </head>
 
 <body>
 
-  <h1>IEC – SPEECH RECOGNITION TEST</h1>
+<div class="box">
 
-  <p>Press START, then say:</p>
+<h1>IEC – FINAL TEST</h1>
 
-  <h2>Auxiliary engine</h2>
+<div id="intro">
+  Nhấn START một lần.<br>
+  Sau đó chỉ nhìn nghĩa tiếng Việt và nói thuật ngữ tiếng Anh.
+</div>
 
-  <button onclick="startRecognition()">
-    START
-  </button>
+<button id="startBtn" onclick="startTest()">START</button>
 
-  <h3>Recognized:</h3>
-  <p id="result">---</p>
+<div id="testArea" style="display:none">
 
-  <h3>Status:</h3>
-  <p id="status">Ready</p>
+  <div id="progress"></div>
+
+  <div class="label">Vietnamese</div>
+  <div id="vietnamese">---</div>
+
+  <div class="label">Reaction time</div>
+  <div id="timer">0.00 s</div>
+
+  <div class="label">Recognized</div>
+  <div id="heard">Listening...</div>
+
+  <div id="status"></div>
+
+  <button id="stopBtn" onclick="stopTest()">STOP TEST</button>
+
+  <div class="note">
+    TEST ENGINE ONLY – chưa chấm phát âm.
+  </div>
+
+</div>
+
+</div>
 
 <script>
 
-function startRecognition() {
+// =====================================================
+// TEMP CONFIG
+// Sau khi engine PASS sẽ lấy từ CONFIG Google Sheet
+// =====================================================
+
+const CONFIG = {
+  REACTION_LIMIT_SEC: 4,
+  SILENCE_END_SEC: 1,
+  NEXT_DELAY_SEC: 0.7,
+  RESULT_DISPLAY_SEC: 0.7,
+  MAX_SPEECH_SEC: 8
+};
+
+
+// =====================================================
+// 3 CORE TEST
+// =====================================================
+
+const WORDS = [
+  {
+    coreId: 2,
+    vietnamese: "Động cơ phụ",
+    english: "Auxiliary engine"
+  },
+  {
+    coreId: 6,
+    vietnamese: "Động cơ 4 kỳ",
+    english: "Four-stroke engine"
+  },
+  {
+    coreId: 7,
+    vietnamese: "Đường kính xi-lanh",
+    english: "Cylinder bore"
+  }
+];
+
+
+// =====================================================
+// GLOBAL STATE
+// =====================================================
+
+let recognition = null;
+
+let currentIndex = 0;
+
+let testRunning = false;
+let responseLocked = false;
+
+let wordStartTime = 0;
+let firstSpeechTime = null;
+
+let transcript = "";
+
+let reactionClock = null;
+let reactionDeadline = null;
+let silenceTimer = null;
+let maxSpeechTimer = null;
+
+
+// =====================================================
+// START TEST
+// =====================================================
+
+function startTest() {
 
   const SpeechRecognition =
     window.SpeechRecognition ||
@@ -36,57 +204,471 @@ function startRecognition() {
 
   if (!SpeechRecognition) {
 
-    document.getElementById('status').textContent =
-      'Speech Recognition NOT SUPPORTED';
+    alert("Speech Recognition is not supported.");
 
     return;
   }
 
-  const recognition = new SpeechRecognition();
+  recognition = new SpeechRecognition();
 
-  recognition.lang = 'en-US';
-  recognition.continuous = false;
+  recognition.lang = "en-US";
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  document.getElementById('result').textContent = '---';
-  document.getElementById('status').textContent =
-    'Listening...';
+  setupRecognitionEvents();
+
+  document.getElementById("startBtn").style.display =
+    "none";
+
+  document.getElementById("testArea").style.display =
+    "block";
+
+  document.getElementById("stopBtn").style.display =
+    "block";
+
+  currentIndex = 0;
+  testRunning = true;
+
+  showWord();
+}
+
+
+// =====================================================
+// RECOGNITION EVENTS
+// =====================================================
+
+function setupRecognitionEvents() {
+
+  recognition.onstart = function() {
+
+    if (!testRunning) return;
+
+    document.getElementById("heard").textContent =
+      "Listening...";
+  };
+
+
+  // ---------------------------------------------------
+  // QUAN TRỌNG:
+  // Reaction kết thúc ngay khi SV BẮT ĐẦU nói
+  // ---------------------------------------------------
+
+  recognition.onspeechstart = function() {
+
+    if (!testRunning || responseLocked) return;
+
+    clearTimeout(silenceTimer);
+
+    if (firstSpeechTime === null) {
+
+      firstSpeechTime = performance.now();
+
+      const reaction =
+        (firstSpeechTime - wordStartTime) / 1000;
+
+      stopReactionTimers();
+
+      document.getElementById("timer").textContent =
+        reaction.toFixed(2) + " s";
+
+      // Từ đây mới bắt đầu giới hạn thời gian nói
+      startMaxSpeechTimer();
+    }
+  };
+
+
+  // ---------------------------------------------------
+  // SpeechRecognition báo speech end.
+  // Bắt đầu chờ SILENCE_END_SEC
+  // ---------------------------------------------------
+
+  recognition.onspeechend = function() {
+
+    if (!testRunning ||
+        responseLocked ||
+        firstSpeechTime === null) {
+
+      return;
+    }
+
+    clearTimeout(silenceTimer);
+
+    silenceTimer = setTimeout(function() {
+
+      lockResponse("SILENCE");
+
+    }, CONFIG.SILENCE_END_SEC * 1000);
+  };
+
 
   recognition.onresult = function(event) {
 
-    let text = '';
+    if (!testRunning || responseLocked) return;
 
-    for (let i = event.resultIndex;
+    let text = "";
+
+    for (let i = 0;
          i < event.results.length;
          i++) {
 
-      text += event.results[i][0].transcript;
+      text +=
+        event.results[i][0].transcript + " ";
     }
 
-    document.getElementById('result').textContent =
-      text;
+    transcript = text.trim();
+
+    document.getElementById("heard").textContent =
+      transcript || "Listening...";
   };
+
 
   recognition.onerror = function(event) {
 
-    document.getElementById('status').textContent =
-      'ERROR: ' + event.error;
+    if (!testRunning) return;
+
+    // no-speech không coi là lỗi hệ thống
+    if (event.error === "no-speech") return;
+
+    document.getElementById("status").textContent =
+      "MIC ERROR: " + event.error;
   };
+
 
   recognition.onend = function() {
 
-    if (
-      !document.getElementById('status')
-        .textContent.startsWith('ERROR')
-    ) {
+    /*
+      Chrome đôi khi tự đóng recognition.
+      Nếu CORE vẫn đang chạy thì mở lại.
+    */
 
-      document.getElementById('status').textContent =
-        'Finished';
+    if (testRunning && !responseLocked) {
+
+      setTimeout(function() {
+
+        if (testRunning && !responseLocked) {
+
+          try {
+            recognition.start();
+          } catch(e) {}
+
+        }
+
+      }, 100);
     }
   };
+}
 
-  recognition.start();
+
+// =====================================================
+// SHOW NEW WORD
+// =====================================================
+
+function showWord() {
+
+  if (!testRunning) return;
+
+  if (currentIndex >= WORDS.length) {
+
+    finishTest();
+
+    return;
+  }
+
+  clearAllTimers();
+
+  responseLocked = false;
+
+  firstSpeechTime = null;
+
+  transcript = "";
+
+  const item = WORDS[currentIndex];
+
+  document.getElementById("progress").textContent =
+    (currentIndex + 1) +
+    " / " +
+    WORDS.length;
+
+  document.getElementById("vietnamese").textContent =
+    item.vietnamese;
+
+  document.getElementById("timer").textContent =
+    "0.00 s";
+
+  document.getElementById("heard").textContent =
+    "Listening...";
+
+  document.getElementById("status").textContent =
+    "";
+
+  /*
+    Đây chính là T0.
+
+    Reaction được tính từ lúc nghĩa tiếng Việt
+    đã được đưa lên màn hình.
+  */
+
+  wordStartTime = performance.now();
+
+  startReactionClock();
+
+  try {
+
+    recognition.start();
+
+  } catch(e) {
+
+    /*
+      Nếu recognition vẫn đang hoạt động
+      thì bỏ qua.
+    */
+  }
+}
+
+
+// =====================================================
+// REACTION
+// =====================================================
+
+function startReactionClock() {
+
+  clearInterval(reactionClock);
+  clearTimeout(reactionDeadline);
+
+
+  // Hiển thị đồng hồ
+  reactionClock = setInterval(function() {
+
+    if (!testRunning ||
+        responseLocked ||
+        firstSpeechTime !== null) {
+
+      clearInterval(reactionClock);
+
+      return;
+    }
+
+    const elapsed =
+      (performance.now() - wordStartTime) / 1000;
+
+    document.getElementById("timer").textContent =
+      elapsed.toFixed(2) + " s";
+
+  }, 50);
+
+
+  // Deadline riêng, không phụ thuộc UI timer
+  reactionDeadline = setTimeout(function() {
+
+    if (!testRunning ||
+        responseLocked ||
+        firstSpeechTime !== null) {
+
+      return;
+    }
+
+    document.getElementById("timer").textContent =
+      CONFIG.REACTION_LIMIT_SEC.toFixed(2) + " s";
+
+    document.getElementById("heard").textContent =
+      "(no answer)";
+
+    lockResponse("REACTION");
+
+  }, CONFIG.REACTION_LIMIT_SEC * 1000);
+}
+
+
+// =====================================================
+// MAX SPEECH
+// =====================================================
+
+function startMaxSpeechTimer() {
+
+  clearTimeout(maxSpeechTimer);
+
+  maxSpeechTimer = setTimeout(function() {
+
+    if (!responseLocked) {
+
+      lockResponse("MAX_SPEECH");
+
+    }
+
+  }, CONFIG.MAX_SPEECH_SEC * 1000);
+}
+
+
+// =====================================================
+// LOCK RESPONSE
+// =====================================================
+
+function lockResponse(reason) {
+
+  if (!testRunning || responseLocked) return;
+
+  responseLocked = true;
+
+  clearAllTimers();
+
+  safeStopRecognition();
+
+  const item = WORDS[currentIndex];
+
+  let reaction = null;
+
+  if (firstSpeechTime !== null) {
+
+    reaction =
+      (firstSpeechTime - wordStartTime) / 1000;
+  }
+
+  let status = "";
+
+  if (reason === "REACTION") {
+
+    status = "RED – REACTION";
+
+  } else if (!transcript) {
+
+    status = "RED – NO ANSWER";
+
+  } else if (reason === "MAX_SPEECH") {
+
+    status = "CAPTURED – MAX SPEECH";
+
+  } else {
+
+    status = "CAPTURED";
+  }
+
+  document.getElementById("status").textContent =
+    status;
+
+  if (transcript) {
+
+    document.getElementById("heard").textContent =
+      transcript;
+  }
+
+  console.log({
+    coreId: item.coreId,
+    vietnamese: item.vietnamese,
+    expected: item.english,
+    recognized: transcript,
+    reaction: reaction,
+    reason: reason,
+    status: status
+  });
+
+
+  // RESULT DISPLAY
+  setTimeout(function() {
+
+    if (!testRunning) return;
+
+    // NEXT DELAY
+    setTimeout(function() {
+
+      if (!testRunning) return;
+
+      currentIndex++;
+
+      showWord();
+
+    }, CONFIG.NEXT_DELAY_SEC * 1000);
+
+  }, CONFIG.RESULT_DISPLAY_SEC * 1000);
+}
+
+
+// =====================================================
+// FINISH
+// =====================================================
+
+function finishTest() {
+
+  testRunning = false;
+
+  clearAllTimers();
+
+  safeStopRecognition();
+
+  document.getElementById("progress").textContent =
+    WORDS.length + " / " + WORDS.length;
+
+  document.getElementById("vietnamese").textContent =
+    "FINISHED";
+
+  document.getElementById("timer").textContent =
+    "";
+
+  document.getElementById("heard").textContent =
+    "";
+
+  document.getElementById("status").textContent =
+    "FINAL TEST COMPLETE";
+
+  document.getElementById("stopBtn").style.display =
+    "none";
+}
+
+
+// =====================================================
+// STOP MANUALLY
+// =====================================================
+
+function stopTest() {
+
+  testRunning = false;
+
+  clearAllTimers();
+
+  safeStopRecognition();
+
+  document.getElementById("status").textContent =
+    "TEST STOPPED";
+
+  document.getElementById("stopBtn").style.display =
+    "none";
+}
+
+
+// =====================================================
+// TIMERS
+// =====================================================
+
+function stopReactionTimers() {
+
+  clearInterval(reactionClock);
+  clearTimeout(reactionDeadline);
+}
+
+
+function clearAllTimers() {
+
+  clearInterval(reactionClock);
+
+  clearTimeout(reactionDeadline);
+  clearTimeout(silenceTimer);
+  clearTimeout(maxSpeechTimer);
+}
+
+
+// =====================================================
+// RECOGNITION STOP
+// =====================================================
+
+function safeStopRecognition() {
+
+  if (!recognition) return;
+
+  try {
+
+    recognition.stop();
+
+  } catch(e) {}
 }
 
 </script>
