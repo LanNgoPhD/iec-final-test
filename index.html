@@ -128,7 +128,7 @@ let CONFIG = null;
 const CONFIG_API =
 "https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-config";
 const WORDS_API =
-  "https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-words";
+  "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-test&student=Test%2001";
 let WORDS = [];
 
 
@@ -296,7 +296,6 @@ WORDS = WORDS.map(function(w) {
     day: w.day
   };
 });
-   WORDS = WORDS.slice(0, 3);
     const required = [
       "REACTION_LIMIT_SEC",
       "PRON_MIN_SCORE",
