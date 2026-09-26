@@ -5,54 +5,91 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-  <title>IEC - Microphone Test</title>
+  <title>IEC - Speech Test</title>
 </head>
 
 <body>
 
-  <h1>IEC – MICROPHONE TEST</h1>
+  <h1>IEC – SPEECH RECOGNITION TEST</h1>
 
-  <p>Test microphone outside Google Apps Script.</p>
+  <p>Press START, then say:</p>
 
-  <button onclick="testMic()">
-    TEST MICROPHONE
+  <h2>Auxiliary engine</h2>
+
+  <button onclick="startRecognition()">
+    START
   </button>
 
-  <p id="status">Not tested</p>
+  <h3>Recognized:</h3>
+  <p id="result">---</p>
 
-  <script>
-    async function testMic() {
+  <h3>Status:</h3>
+  <p id="status">Ready</p>
 
-      const status =
-        document.getElementById('status');
+<script>
 
-      try {
+function startRecognition() {
 
-        status.textContent =
-          'Requesting microphone...';
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
-            audio: true
-          });
+  if (!SpeechRecognition) {
 
-        status.textContent =
-          'MIC OK';
+    document.getElementById('status').textContent =
+      'Speech Recognition NOT SUPPORTED';
 
-        stream.getTracks().forEach(track => {
-          track.stop();
-        });
+    return;
+  }
 
-      } catch (err) {
+  const recognition = new SpeechRecognition();
 
-        status.textContent =
-          'MIC ERROR: ' +
-          err.name +
-          ' - ' +
-          err.message;
-      }
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  document.getElementById('result').textContent = '---';
+  document.getElementById('status').textContent =
+    'Listening...';
+
+  recognition.onresult = function(event) {
+
+    let text = '';
+
+    for (let i = event.resultIndex;
+         i < event.results.length;
+         i++) {
+
+      text += event.results[i][0].transcript;
     }
-  </script>
+
+    document.getElementById('result').textContent =
+      text;
+  };
+
+  recognition.onerror = function(event) {
+
+    document.getElementById('status').textContent =
+      'ERROR: ' + event.error;
+  };
+
+  recognition.onend = function() {
+
+    if (
+      !document.getElementById('status')
+        .textContent.startsWith('ERROR')
+    ) {
+
+      document.getElementById('status').textContent =
+        'Finished';
+    }
+  };
+
+  recognition.start();
+}
+
+</script>
 
 </body>
 </html>
