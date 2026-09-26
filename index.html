@@ -123,19 +123,10 @@ button {
 // =====================================================
 // TEMP CONFIG — SAU KHI PASS SẼ LẤY TỪ GOOGLE SHEET
 // =====================================================
+let CONFIG = null;
 
-const CONFIG = {
-  REACTION_LIMIT_SEC: 4,
-  SILENCE_END_SEC: 1,
-  NEXT_DELAY_SEC: 0.7,
-  RESULT_DISPLAY_SEC: 0.7,
-  MAX_SPEECH_SEC: 8,
-
-  RESTART_WORD: "AGAIN",
-  MAX_RESTART: 1,
-  RESTART_POLICY: "LOG"
-};
-
+const CONFIG_API =
+"https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-config";
 
 // =====================================================
 // TEST WORDS
@@ -191,20 +182,101 @@ let speechSeenInSession = false;
 // START TEST
 // =====================================================
 
-function startTest() {
+async function startTest() {
 
+  const startBtn =
+    document.getElementById("startBtn");
+
+  startBtn.disabled = true;
+  startBtn.textContent = "LOADING CONFIG...";
+
+  // LOAD CONFIG FROM GOOGLE SHEET
+  try {
+
+    const response =
+      await fetch(CONFIG_API, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    CONFIG = await response.json();
+
+    const required = [
+      "REACTION_LIMIT_SEC",
+      "PRON_MIN_SCORE",
+      "ENDING_MIN_SCORE",
+      "REPAIR_LIMIT",
+      "FINAL_RED_LIMIT",
+      "FINAL_RANDOM_LIMIT",
+      "SILENCE_END_SEC",
+      "NEXT_DELAY_SEC",
+      "RESULT_DISPLAY_SEC",
+      "MAX_SPEECH_SEC",
+      "RESTART_WORD",
+      "MAX_RESTART",
+      "RESTART_POLICY"
+    ];
+
+    const missing =
+      required.filter(function(key) {
+        return (
+          CONFIG[key] === undefined ||
+          CONFIG[key] === null ||
+          CONFIG[key] === ""
+        );
+      });
+
+    if (missing.length > 0) {
+      throw new Error(
+        "Missing CONFIG: " + missing.join(", ")
+      );
+    }
+
+    console.log("FINAL CONFIG FROM SHEET:", CONFIG);
+
+  } catch(error) {
+
+    console.error("CONFIG LOAD ERROR:", error);
+
+    startBtn.disabled = false;
+    startBtn.textContent = "START";
+
+    alert(
+      "CONFIG ERROR\n\n" +
+      "Không tải được cấu hình bài thi.\n" +
+      "Bài thi chưa được bắt đầu.\n\n" +
+      error.message
+    );
+
+    return;
+  }
+
+  // CHECK SPEECH RECOGNITION
   const SR =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
 
   if (!SR) {
+
+    startBtn.disabled = false;
+    startBtn.textContent = "START";
+
     alert("Speech Recognition is not supported.");
     return;
   }
 
-  document.getElementById("startBtn").style.display = "none";
-  document.getElementById("testArea").style.display = "block";
-  document.getElementById("stopBtn").style.display = "block";
+  // START TEST
+  startBtn.style.display = "none";
+
+  document.getElementById("testArea")
+    .style.display = "block";
+
+  document.getElementById("stopBtn")
+    .style.display = "block";
 
   currentIndex = 0;
   testRunning = true;
