@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>IEC – FINAL TEST</title>
+<title>IEC – FINAL TEST V2</title>
 
 <style>
 body {
@@ -13,7 +13,6 @@ body {
   margin: 0;
   padding: 20px;
 }
-
 .box {
   max-width: 680px;
   margin: 30px auto;
@@ -22,47 +21,39 @@ body {
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,.12);
 }
-
-h1 {
-  margin-top: 0;
-}
+h1 { margin-top: 0; }
 
 #progress {
   color: #666;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
-
 .label {
   color: #666;
   font-size: 14px;
-  margin-top: 20px;
+  margin-top: 18px;
 }
-
 #vietnamese {
   font-size: 34px;
   font-weight: bold;
   margin-top: 8px;
+  min-height: 42px;
 }
-
 #timer {
   font-size: 44px;
   font-weight: bold;
   margin-top: 8px;
 }
-
 #heard {
   font-size: 22px;
   min-height: 32px;
   margin-top: 8px;
 }
-
 #status {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: bold;
   min-height: 30px;
-  margin-top: 22px;
+  margin-top: 20px;
 }
-
 button {
   width: 100%;
   padding: 16px;
@@ -73,20 +64,17 @@ button {
   cursor: pointer;
   margin-top: 20px;
 }
-
 #startBtn {
   background: #1a73e8;
   color: white;
 }
-
 #stopBtn {
   background: #b3261e;
   color: white;
   display: none;
 }
-
 .note {
-  margin-top: 25px;
+  margin-top: 22px;
   color: #777;
   font-size: 13px;
 }
@@ -97,11 +85,11 @@ button {
 
 <div class="box">
 
-<h1>IEC – FINAL TEST</h1>
+<h1>IEC – FINAL TEST V2</h1>
 
 <div id="intro">
   Nhấn START một lần.<br>
-  Sau đó chỉ nhìn nghĩa tiếng Việt và nói thuật ngữ tiếng Anh.
+  Microphone phải sẵn sàng trước khi từ xuất hiện.
 </div>
 
 <button id="startBtn" onclick="startTest()">START</button>
@@ -111,20 +99,20 @@ button {
   <div id="progress"></div>
 
   <div class="label">Vietnamese</div>
-  <div id="vietnamese">---</div>
+  <div id="vietnamese">WAITING FOR MICROPHONE...</div>
 
   <div class="label">Reaction time</div>
-  <div id="timer">0.00 s</div>
+  <div id="timer">--</div>
 
   <div class="label">Recognized</div>
-  <div id="heard">Listening...</div>
+  <div id="heard">---</div>
 
   <div id="status"></div>
 
   <button id="stopBtn" onclick="stopTest()">STOP TEST</button>
 
   <div class="note">
-    TEST ENGINE ONLY – chưa chấm phát âm.
+    Engine test: MIC READY → WORD → REACTION → SPEECH → AUTO NEXT
   </div>
 
 </div>
@@ -135,12 +123,10 @@ button {
 
 // =====================================================
 // TEMP CONFIG
-// Sau khi engine PASS sẽ lấy từ CONFIG Google Sheet
 // =====================================================
 
 const CONFIG = {
   REACTION_LIMIT_SEC: 4,
-  SILENCE_END_SEC: 1,
   NEXT_DELAY_SEC: 0.7,
   RESULT_DISPLAY_SEC: 0.7,
   MAX_SPEECH_SEC: 8
@@ -148,7 +134,7 @@ const CONFIG = {
 
 
 // =====================================================
-// 3 CORE TEST
+// TEST DATA
 // =====================================================
 
 const WORDS = [
@@ -171,24 +157,25 @@ const WORDS = [
 
 
 // =====================================================
-// GLOBAL STATE
+// STATE
 // =====================================================
 
 let recognition = null;
 
 let currentIndex = 0;
-
 let testRunning = false;
 let responseLocked = false;
 
-let wordStartTime = 0;
+let wordVisible = false;
+
+let wordStartTime = null;
 let firstSpeechTime = null;
 
-let transcript = "";
+let finalTranscript = "";
+let interimTranscript = "";
 
 let reactionClock = null;
 let reactionDeadline = null;
-let silenceTimer = null;
 let maxSpeechTimer = null;
 
 
@@ -203,62 +190,139 @@ function startTest() {
     window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-
     alert("Speech Recognition is not supported.");
-
     return;
   }
 
-  recognition = new SpeechRecognition();
-
-  recognition.lang = "en-US";
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
-
-  setupRecognitionEvents();
-
-  document.getElementById("startBtn").style.display =
-    "none";
-
-  document.getElementById("testArea").style.display =
-    "block";
-
-  document.getElementById("stopBtn").style.display =
-    "block";
+  document.getElementById("startBtn").style.display = "none";
+  document.getElementById("testArea").style.display = "block";
+  document.getElementById("stopBtn").style.display = "block";
 
   currentIndex = 0;
   testRunning = true;
 
-  showWord();
+  prepareCurrentWord();
 }
 
 
 // =====================================================
-// RECOGNITION EVENTS
+// PREPARE ONE CORE
 // =====================================================
 
-function setupRecognitionEvents() {
+function prepareCurrentWord() {
+
+  if (!testRunning) return;
+
+  if (currentIndex >= WORDS.length) {
+    finishTest();
+    return;
+  }
+
+  clearTimers();
+
+  responseLocked = false;
+  wordVisible = false;
+
+  wordStartTime = null;
+  firstSpeechTime = null;
+
+  finalTranscript = "";
+  interimTranscript = "";
+
+  document.getElementById("progress").textContent =
+    (currentIndex + 1) + " / " + WORDS.length;
+
+  /*
+    QUAN TRỌNG:
+    Chưa cho SV nhìn thấy từ.
+  */
+
+  document.getElementById("vietnamese").textContent =
+    "WAITING FOR MICROPHONE...";
+
+  document.getElementById("timer").textContent = "--";
+  document.getElementById("heard").textContent = "---";
+
+  document.getElementById("status").textContent =
+    "Preparing microphone...";
+
+  createRecognitionSession();
+}
+
+
+// =====================================================
+// ONE RECOGNITION SESSION PER CORE
+// =====================================================
+
+function createRecognitionSession() {
+
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  recognition = new SpeechRecognition();
+
+  recognition.lang = "en-US";
+
+  /*
+    Mỗi CORE là một recognition session riêng.
+  */
+  recognition.continuous = false;
+
+  /*
+    Giữ interim để nhìn được máy đang nghe gì.
+  */
+  recognition.interimResults = true;
+
+  recognition.maxAlternatives = 1;
+
+
+  // ===================================================
+  // MIC THỰC SỰ READY
+  // ===================================================
 
   recognition.onstart = function() {
 
-    if (!testRunning) return;
+    if (!testRunning || responseLocked) return;
+
+    /*
+      CHỈ BÂY GIỜ MỚI HIỆN TỪ.
+    */
+
+    const item = WORDS[currentIndex];
+
+    document.getElementById("vietnamese").textContent =
+      item.vietnamese;
 
     document.getElementById("heard").textContent =
       "Listening...";
+
+    document.getElementById("status").textContent =
+      "LISTENING";
+
+    /*
+      T0 bắt đầu SAU KHI MIC READY
+      và đúng lúc từ được hiển thị.
+    */
+
+    wordStartTime = performance.now();
+    wordVisible = true;
+
+    startReactionTimer();
   };
 
 
-  // ---------------------------------------------------
-  // QUAN TRỌNG:
-  // Reaction kết thúc ngay khi SV BẮT ĐẦU nói
-  // ---------------------------------------------------
+  // ===================================================
+  // SV BẮT ĐẦU NÓI
+  // ===================================================
 
   recognition.onspeechstart = function() {
 
-    if (!testRunning || responseLocked) return;
-
-    clearTimeout(silenceTimer);
+    if (!testRunning ||
+        responseLocked ||
+        !wordVisible) {
+      return;
+    }
 
     if (firstSpeechTime === null) {
 
@@ -267,184 +331,325 @@ function setupRecognitionEvents() {
       const reaction =
         (firstSpeechTime - wordStartTime) / 1000;
 
-      stopReactionTimers();
+      stopReactionTimer();
 
       document.getElementById("timer").textContent =
         reaction.toFixed(2) + " s";
 
-      // Từ đây mới bắt đầu giới hạn thời gian nói
-      startMaxSpeechTimer();
+      /*
+        MAX SPEECH tính từ lúc SV bắt đầu nói.
+      */
+
+      maxSpeechTimer = setTimeout(function() {
+
+        if (!responseLocked) {
+          lockResponse("MAX_SPEECH");
+        }
+
+      }, CONFIG.MAX_SPEECH_SEC * 1000);
     }
   };
 
 
-  // ---------------------------------------------------
-  // SpeechRecognition báo speech end.
-  // Bắt đầu chờ SILENCE_END_SEC
-  // ---------------------------------------------------
+  // ===================================================
+  // TRANSCRIPT
+  // ===================================================
+
+  recognition.onresult = function(event) {
+
+    if (!testRunning || responseLocked) return;
+
+    let interim = "";
+
+    for (let i = event.resultIndex;
+         i < event.results.length;
+         i++) {
+
+      const text =
+        event.results[i][0].transcript.trim();
+
+      if (event.results[i].isFinal) {
+
+        finalTranscript += text + " ";
+
+      } else {
+
+        interim += text + " ";
+      }
+    }
+
+    interimTranscript = interim.trim();
+
+    const display =
+      (finalTranscript + interimTranscript).trim();
+
+    document.getElementById("heard").textContent =
+      display || "Listening...";
+  };
+
+
+  // ===================================================
+  // SPEECH RECOGNITION ĐÃ KẾT THÚC CÂU
+  // ===================================================
 
   recognition.onspeechend = function() {
 
     if (!testRunning ||
         responseLocked ||
         firstSpeechTime === null) {
+      return;
+    }
+
+    /*
+      Với continuous=false, cho engine kết thúc câu.
+      onend sẽ xử lý response.
+    */
+
+    document.getElementById("status").textContent =
+      "Processing...";
+  };
+
+
+  // ===================================================
+  // ERROR
+  // ===================================================
+
+  recognition.onerror = function(event) {
+
+    if (!testRunning || responseLocked) return;
+
+    if (event.error === "no-speech") {
+
+      /*
+        Nếu recognition tự đóng trước deadline,
+        ta xử lý ở onend.
+      */
 
       return;
     }
 
-    clearTimeout(silenceTimer);
+    responseLocked = true;
 
-    silenceTimer = setTimeout(function() {
-
-      lockResponse("SILENCE");
-
-    }, CONFIG.SILENCE_END_SEC * 1000);
-  };
-
-
-  recognition.onresult = function(event) {
-
-    if (!testRunning || responseLocked) return;
-
-    let text = "";
-
-    for (let i = 0;
-         i < event.results.length;
-         i++) {
-
-      text +=
-        event.results[i][0].transcript + " ";
-    }
-
-    transcript = text.trim();
-
-    document.getElementById("heard").textContent =
-      transcript || "Listening...";
-  };
-
-
-  recognition.onerror = function(event) {
-
-    if (!testRunning) return;
-
-    // no-speech không coi là lỗi hệ thống
-    if (event.error === "no-speech") return;
+    clearTimers();
 
     document.getElementById("status").textContent =
       "MIC ERROR: " + event.error;
   };
 
 
+  // ===================================================
+  // SESSION ENDED
+  // ===================================================
+
   recognition.onend = function() {
 
+    if (!testRunning || responseLocked) return;
+
     /*
-      Chrome đôi khi tự đóng recognition.
-      Nếu CORE vẫn đang chạy thì mở lại.
+      Trường hợp recognition tự đóng nhưng SV chưa nói,
+      mà vẫn còn trong 4 giây:
+      tạo session mới nhưng KHÔNG reset reaction T0.
     */
 
-    if (testRunning && !responseLocked) {
+    if (firstSpeechTime === null) {
 
-      setTimeout(function() {
+      const elapsed =
+        wordStartTime === null
+          ? 0
+          : (performance.now() - wordStartTime) / 1000;
 
-        if (testRunning && !responseLocked) {
+      if (elapsed < CONFIG.REACTION_LIMIT_SEC) {
 
-          try {
-            recognition.start();
-          } catch(e) {}
+        restartListeningWithoutReset();
 
-        }
+        return;
+      }
 
-      }, 100);
+      lockResponse("REACTION");
+      return;
     }
+
+    /*
+      Có speech rồi:
+      session kết thúc = response hoàn tất.
+    */
+
+    lockResponse("SPEECH_END");
   };
-}
 
 
-// =====================================================
-// SHOW NEW WORD
-// =====================================================
-
-function showWord() {
-
-  if (!testRunning) return;
-
-  if (currentIndex >= WORDS.length) {
-
-    finishTest();
-
-    return;
-  }
-
-  clearAllTimers();
-
-  responseLocked = false;
-
-  firstSpeechTime = null;
-
-  transcript = "";
-
-  const item = WORDS[currentIndex];
-
-  document.getElementById("progress").textContent =
-    (currentIndex + 1) +
-    " / " +
-    WORDS.length;
-
-  document.getElementById("vietnamese").textContent =
-    item.vietnamese;
-
-  document.getElementById("timer").textContent =
-    "0.00 s";
-
-  document.getElementById("heard").textContent =
-    "Listening...";
-
-  document.getElementById("status").textContent =
-    "";
-
-  /*
-    Đây chính là T0.
-
-    Reaction được tính từ lúc nghĩa tiếng Việt
-    đã được đưa lên màn hình.
-  */
-
-  wordStartTime = performance.now();
-
-  startReactionClock();
+  // ===================================================
+  // START MIC
+  // ===================================================
 
   try {
 
     recognition.start();
 
-  } catch(e) {
+  } catch (e) {
 
-    /*
-      Nếu recognition vẫn đang hoạt động
-      thì bỏ qua.
-    */
+    document.getElementById("status").textContent =
+      "START ERROR: " + e.message;
   }
 }
 
 
 // =====================================================
-// REACTION
+// RESTART MIC BEFORE SPEECH
+// KHÔNG RESET T0
 // =====================================================
 
-function startReactionClock() {
+function restartListeningWithoutReset() {
 
-  clearInterval(reactionClock);
-  clearTimeout(reactionDeadline);
+  if (!testRunning || responseLocked) return;
 
+  const oldStart = wordStartTime;
 
-  // Hiển thị đồng hồ
-  reactionClock = setInterval(function() {
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  recognition = new SpeechRecognition();
+
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = function() {
+
+    /*
+      Không hiện lại từ.
+      Không reset wordStartTime.
+    */
+
+    wordStartTime = oldStart;
+
+    document.getElementById("status").textContent =
+      "LISTENING";
+  };
+
+  recognition.onspeechstart = function() {
 
     if (!testRunning ||
         responseLocked ||
         firstSpeechTime !== null) {
+      return;
+    }
 
-      clearInterval(reactionClock);
+    firstSpeechTime = performance.now();
+
+    const reaction =
+      (firstSpeechTime - wordStartTime) / 1000;
+
+    stopReactionTimer();
+
+    document.getElementById("timer").textContent =
+      reaction.toFixed(2) + " s";
+
+    maxSpeechTimer = setTimeout(function() {
+
+      if (!responseLocked) {
+        lockResponse("MAX_SPEECH");
+      }
+
+    }, CONFIG.MAX_SPEECH_SEC * 1000);
+  };
+
+  recognition.onresult = function(event) {
+
+    if (!testRunning || responseLocked) return;
+
+    let interim = "";
+
+    for (let i = event.resultIndex;
+         i < event.results.length;
+         i++) {
+
+      const text =
+        event.results[i][0].transcript.trim();
+
+      if (event.results[i].isFinal) {
+
+        finalTranscript += text + " ";
+
+      } else {
+
+        interim += text + " ";
+      }
+    }
+
+    interimTranscript = interim.trim();
+
+    const display =
+      (finalTranscript + interimTranscript).trim();
+
+    document.getElementById("heard").textContent =
+      display || "Listening...";
+  };
+
+  recognition.onspeechend = function() {
+
+    if (firstSpeechTime !== null) {
+
+      document.getElementById("status").textContent =
+        "Processing...";
+    }
+  };
+
+  recognition.onerror = function(event) {
+
+    if (event.error !== "no-speech") {
+
+      document.getElementById("status").textContent =
+        "MIC ERROR: " + event.error;
+    }
+  };
+
+  recognition.onend = function() {
+
+    if (!testRunning || responseLocked) return;
+
+    if (firstSpeechTime === null) {
+
+      const elapsed =
+        (performance.now() - wordStartTime) / 1000;
+
+      if (elapsed < CONFIG.REACTION_LIMIT_SEC) {
+
+        restartListeningWithoutReset();
+
+      } else {
+
+        lockResponse("REACTION");
+      }
+
+      return;
+    }
+
+    lockResponse("SPEECH_END");
+  };
+
+  try {
+    recognition.start();
+  } catch(e) {}
+}
+
+
+// =====================================================
+// REACTION TIMER
+// =====================================================
+
+function startReactionTimer() {
+
+  stopReactionTimer();
+
+  reactionClock = setInterval(function() {
+
+    if (!testRunning ||
+        responseLocked ||
+        firstSpeechTime !== null ||
+        wordStartTime === null) {
 
       return;
     }
@@ -458,21 +663,16 @@ function startReactionClock() {
   }, 50);
 
 
-  // Deadline riêng, không phụ thuộc UI timer
   reactionDeadline = setTimeout(function() {
 
     if (!testRunning ||
         responseLocked ||
         firstSpeechTime !== null) {
-
       return;
     }
 
     document.getElementById("timer").textContent =
       CONFIG.REACTION_LIMIT_SEC.toFixed(2) + " s";
-
-    document.getElementById("heard").textContent =
-      "(no answer)";
 
     lockResponse("REACTION");
 
@@ -480,23 +680,13 @@ function startReactionClock() {
 }
 
 
-// =====================================================
-// MAX SPEECH
-// =====================================================
+function stopReactionTimer() {
 
-function startMaxSpeechTimer() {
+  clearInterval(reactionClock);
+  clearTimeout(reactionDeadline);
 
-  clearTimeout(maxSpeechTimer);
-
-  maxSpeechTimer = setTimeout(function() {
-
-    if (!responseLocked) {
-
-      lockResponse("MAX_SPEECH");
-
-    }
-
-  }, CONFIG.MAX_SPEECH_SEC * 1000);
+  reactionClock = null;
+  reactionDeadline = null;
 }
 
 
@@ -510,72 +700,102 @@ function lockResponse(reason) {
 
   responseLocked = true;
 
-  clearAllTimers();
+  clearTimers();
 
-  safeStopRecognition();
+  /*
+    QUAN TRỌNG:
+    Interim cuối cùng đôi khi là transcript tốt nhất
+    ngay trước khi recognition đóng.
+  */
+
+  let answer =
+    (finalTranscript + " " + interimTranscript)
+      .trim()
+      .replace(/\s+/g, " ");
 
   const item = WORDS[currentIndex];
 
   let reaction = null;
 
-  if (firstSpeechTime !== null) {
+  if (firstSpeechTime !== null &&
+      wordStartTime !== null) {
 
     reaction =
       (firstSpeechTime - wordStartTime) / 1000;
   }
 
-  let status = "";
+
+  let status;
 
   if (reason === "REACTION") {
 
     status = "RED – REACTION";
 
-  } else if (!transcript) {
+    answer = "";
+
+  } else if (!answer) {
 
     status = "RED – NO ANSWER";
 
-  } else if (reason === "MAX_SPEECH") {
+  } else {
 
-    status = "CAPTURED – MAX SPEECH";
+    /*
+      CHƯA CHẤM PRONUNCIATION.
+      CAPTURED chỉ nghĩa là thu được response.
+    */
+
+    status = "CAPTURED";
+  }
+
+
+  if (answer) {
+
+    document.getElementById("heard").textContent =
+      answer;
 
   } else {
 
-    status = "CAPTURED";
+    document.getElementById("heard").textContent =
+      "(no answer)";
   }
 
   document.getElementById("status").textContent =
     status;
 
-  if (transcript) {
-
-    document.getElementById("heard").textContent =
-      transcript;
-  }
 
   console.log({
     coreId: item.coreId,
-    vietnamese: item.vietnamese,
     expected: item.english,
-    recognized: transcript,
+    recognized: answer,
     reaction: reaction,
-    reason: reason,
-    status: status
+    reason: reason
   });
 
 
-  // RESULT DISPLAY
+  /*
+    Đóng session hiện tại.
+  */
+
+  try {
+    recognition.abort();
+  } catch(e) {}
+
+
+  /*
+    RESULT DISPLAY + NEXT DELAY
+  */
+
   setTimeout(function() {
 
     if (!testRunning) return;
 
-    // NEXT DELAY
     setTimeout(function() {
 
       if (!testRunning) return;
 
       currentIndex++;
 
-      showWord();
+      prepareCurrentWord();
 
     }, CONFIG.NEXT_DELAY_SEC * 1000);
 
@@ -591,9 +811,11 @@ function finishTest() {
 
   testRunning = false;
 
-  clearAllTimers();
+  clearTimers();
 
-  safeStopRecognition();
+  try {
+    if (recognition) recognition.abort();
+  } catch(e) {}
 
   document.getElementById("progress").textContent =
     WORDS.length + " / " + WORDS.length;
@@ -601,11 +823,9 @@ function finishTest() {
   document.getElementById("vietnamese").textContent =
     "FINISHED";
 
-  document.getElementById("timer").textContent =
-    "";
+  document.getElementById("timer").textContent = "";
 
-  document.getElementById("heard").textContent =
-    "";
+  document.getElementById("heard").textContent = "";
 
   document.getElementById("status").textContent =
     "FINAL TEST COMPLETE";
@@ -616,16 +836,18 @@ function finishTest() {
 
 
 // =====================================================
-// STOP MANUALLY
+// STOP
 // =====================================================
 
 function stopTest() {
 
   testRunning = false;
 
-  clearAllTimers();
+  clearTimers();
 
-  safeStopRecognition();
+  try {
+    if (recognition) recognition.abort();
+  } catch(e) {}
 
   document.getElementById("status").textContent =
     "TEST STOPPED";
@@ -636,39 +858,16 @@ function stopTest() {
 
 
 // =====================================================
-// TIMERS
+// CLEAR TIMERS
 // =====================================================
 
-function stopReactionTimers() {
+function clearTimers() {
 
-  clearInterval(reactionClock);
-  clearTimeout(reactionDeadline);
-}
+  stopReactionTimer();
 
-
-function clearAllTimers() {
-
-  clearInterval(reactionClock);
-
-  clearTimeout(reactionDeadline);
-  clearTimeout(silenceTimer);
   clearTimeout(maxSpeechTimer);
-}
 
-
-// =====================================================
-// RECOGNITION STOP
-// =====================================================
-
-function safeStopRecognition() {
-
-  if (!recognition) return;
-
-  try {
-
-    recognition.stop();
-
-  } catch(e) {}
+  maxSpeechTimer = null;
 }
 
 </script>
