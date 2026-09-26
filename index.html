@@ -157,7 +157,8 @@ let finalAnswer = "";
 let restartCount = 0;
 
 let speechSeenInSession = false;
-
+// Kết quả từng từ trong FINAL hiện tại
+let finalResults = [];
 
 // =====================================================
 // START TEST
@@ -1022,16 +1023,16 @@ function lockResponse(reason) {
 
     status = "RED – RESTART";
 
+ } else {
+
+  const expected = WORDS[currentIndex].english;
+
+  if (isCorrectAnswer(finalAnswer, expected)) {
+    status = "PASS";
   } else {
-
-    /*
-      LOG:
-      restart được ghi nhận,
-      chưa làm fail.
-    */
-
-    status = "CAPTURED";
+    status = "RED - WRONG";
   }
+}
 
 
   document.getElementById("status").textContent =
@@ -1044,20 +1045,18 @@ function lockResponse(reason) {
       : null;
 
 
-  console.log({
-    coreId: WORDS[currentIndex].coreId,
-    expected: WORDS[currentIndex].english,
-
-    reaction: reaction,
-
-    firstAnswer: firstAnswer,
-    restartCount: restartCount,
-    finalAnswer: finalAnswer,
-
-    restartPolicy: CONFIG.RESTART_POLICY,
-    result: status
-  });
-
+finalResults.push({
+  studentId: "Test 01",
+  coreId: WORDS[currentIndex].coreId,
+  english: WORDS[currentIndex].english,
+  source: WORDS[currentIndex].source || "",
+  reaction: reaction,
+  firstAnswer: firstAnswer || "",
+  finalAnswer: finalAnswer || "",
+  restartCount: restartCount,
+  restartPolicy: CONFIG.RESTART_POLICY,
+  result: status
+});
 
   setTimeout(function() {
 
@@ -1080,7 +1079,17 @@ function lockResponse(reason) {
 // =====================================================
 // UTIL
 // =====================================================
+function normalizeAnswer(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, " ");
+}
 
+function isCorrectAnswer(answer, expected) {
+  return normalizeAnswer(answer) === normalizeAnswer(expected);
+}
 function cleanToken(token) {
 
   return String(token || "")
