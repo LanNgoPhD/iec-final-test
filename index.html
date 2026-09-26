@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>IEC - Microphone Test</title>
+</head>
+
+<body>
+
+  <h1>IEC – MICROPHONE TEST</h1>
+
+  <p>Test microphone outside Google Apps Script.</p>
+
+  <button onclick="testMic()">
+    TEST MICROPHONE
+  </button>
+
+  <p id="status">Not tested</p>
+
+  <script>
+    async function testMic() {
+
+      const status =
+        document.getElementById('status');
+
+      try {
+
+        status.textContent =
+          'Requesting microphone...';
+
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            audio: true
+          });
+
+        status.textContent =
+          'MIC OK';
+
+        stream.getTracks().forEach(track => {
+          track.stop();
+        });
+
+      } catch (err) {
+
+        status.textContent =
+          'MIC ERROR: ' +
+          err.name +
+          ' - ' +
+          err.message;
+      }
+    }
+  </script>
+
+</body>
+</html>
