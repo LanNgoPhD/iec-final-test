@@ -127,28 +127,9 @@ let CONFIG = null;
 
 const CONFIG_API =
 "https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-config";
-
-// =====================================================
-// TEST WORDS
-// =====================================================
-
-const WORDS = [
-  {
-    coreId: 2,
-    vietnamese: "Động cơ phụ",
-    english: "Auxiliary engine"
-  },
-  {
-    coreId: 6,
-    vietnamese: "Động cơ 4 kỳ",
-    english: "Four-stroke engine"
-  },
-  {
-    coreId: 7,
-    vietnamese: "Đường kính xi-lanh",
-    english: "Cylinder bore"
-  }
-];
+const WORDS_API =
+  "https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-words";
+let WORDS = [];
 
 
 // =====================================================
@@ -245,7 +226,77 @@ async function startTest() {
 
   document.head.appendChild(script);
 });
+// LOAD CORE_300 WORDS FROM GOOGLE SHEET
+WORDS = await new Promise(function(resolve, reject) {
 
+  const callbackName =
+    "finalWordsCallback_" + Date.now();
+
+  const script =
+    document.createElement("script");
+
+  const timer =
+    setTimeout(function() {
+
+      cleanup();
+      reject(new Error("WORDS timeout"));
+
+    }, 10000);
+
+  function cleanup() {
+
+    clearTimeout(timer);
+
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+
+    try {
+      delete window[callbackName];
+    } catch (e) {
+      window[callbackName] = undefined;
+    }
+  }
+
+  window[callbackName] = function(data) {
+
+    cleanup();
+    resolve(data);
+  };
+
+  script.onerror = function() {
+
+    cleanup();
+    reject(new Error("WORDS JSONP load failed"));
+  };
+
+  script.src =
+    WORDS_API +
+    "&callback=" +
+    encodeURIComponent(callbackName) +
+    "&_=" +
+    Date.now();
+
+  document.head.appendChild(script);
+});
+
+if (!Array.isArray(WORDS) || WORDS.length === 0) {
+  throw new Error("CORE_300 empty");
+}
+
+// Đổi tên STT từ API thành coreId mà engine hiện tại đang dùng
+WORDS = WORDS.map(function(w) {
+  return {
+    coreId: Number(w.stt),
+    vietnamese: w.vietnamese,
+    english: w.english,
+    ipa: w.ipa || "",
+    pronNote: w.pronNote || "",
+    chapter: w.chapter || "",
+    day: w.day
+  };
+});
+   WORDS = WORDS.slice(0, 3);
     const required = [
       "REACTION_LIMIT_SEC",
       "PRON_MIN_SCORE",
