@@ -1136,7 +1136,35 @@ function stopTest() {
 // =====================================================
 // FINISH
 // =====================================================
+function submitFinalResults() {
 
+  const payload = {
+    api: "final-submit",
+    studentId: "Test 01",
+    day: Number(WORDS[0] && WORDS[0].day) || 1,
+    results: finalResults
+  };
+
+  const form = document.createElement("form");
+
+  form.method = "POST";
+  form.action =
+    "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec";
+
+  form.target = "finalSubmitFrame";
+
+  const input = document.createElement("input");
+
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(payload);
+
+  form.appendChild(input);
+  document.body.appendChild(form);
+
+  form.submit();
+  form.remove();
+}
 function finishTest() {
 
   testRunning = false;
@@ -1162,27 +1190,16 @@ function finishTest() {
 
   document.getElementById("status").textContent =
     "FINAL TEST COMPLETE";
-  alert("ĐANG GỬI FINAL: " + finalResults.length + " câu");
-fetch("https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec", {
-  method: "POST",
-  mode: "no-cors",
-  headers: {
-    "Content-Type": "text/plain;charset=utf-8"
-  },
-  body: JSON.stringify({
-    api: "final-submit",
-    studentId: "Test 01",
-    day: Number(WORDS[0] && WORDS[0].day) || 1,
-    results: finalResults
-  })
-}).catch(function(err) {
-  console.error("FINAL submit failed:", err);
-});
+submitFinalResults();
+
   document.getElementById("stopBtn").style.display =
     "none";
 }
 
 </script>
-
+<iframe
+  name="finalSubmitFrame"
+  style="display:none;">
+</iframe>
 </body>
 </html>
