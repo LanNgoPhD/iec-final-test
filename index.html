@@ -193,17 +193,58 @@ async function startTest() {
   // LOAD CONFIG FROM GOOGLE SHEET
   try {
 
-    const response =
-      await fetch(CONFIG_API, {
-        method: "GET",
-        cache: "no-store"
-      });
+    CONFIG = await new Promise(function(resolve, reject) {
 
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
+  const callbackName =
+    "finalConfigCallback_" + Date.now();
+
+  const script =
+    document.createElement("script");
+
+  const timer =
+    setTimeout(function() {
+
+      cleanup();
+      reject(new Error("CONFIG timeout"));
+
+    }, 10000);
+
+  function cleanup() {
+
+    clearTimeout(timer);
+
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
     }
 
-    CONFIG = await response.json();
+    try {
+      delete window[callbackName];
+    } catch (e) {
+      window[callbackName] = undefined;
+    }
+  }
+
+  window[callbackName] = function(data) {
+
+    cleanup();
+    resolve(data);
+  };
+
+  script.onerror = function() {
+
+    cleanup();
+    reject(new Error("CONFIG JSONP load failed"));
+  };
+
+  script.src =
+    CONFIG_API +
+    "&callback=" +
+    encodeURIComponent(callbackName) +
+    "&_=" +
+    Date.now();
+
+  document.head.appendChild(script);
+});
 
     const required = [
       "REACTION_LIMIT_SEC",
