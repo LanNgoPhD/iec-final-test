@@ -1191,8 +1191,15 @@ function finishTest() {
   document.getElementById("finalAnswer").textContent = "";
   document.getElementById("restartInfo").textContent = "";
 
-  document.getElementById("status").textContent =
-    "FINAL TEST COMPLETE";
+ const total = finalResults.length;
+const pass = finalResults.filter(r => r.result === "PASS").length;
+const red = total - pass;
+
+document.getElementById("status").textContent =
+    "FINAL TEST COMPLETE\n" +
+    "Total: " + total + "\n" +
+    "PASS: " + pass + "\n" +
+    "RED: " + red;
 submitFinalResults();
 
   document.getElementById("stopBtn").style.display =
