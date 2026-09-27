@@ -1191,13 +1191,12 @@ function finishTest() {
 const pass = finalResults.filter(r => r.result === "PASS").length;
 const red = total - pass;
 
-document.getElementById("status").textContent =
-    "FINAL TEST COMPLETE\n" +
-    "Total: " + total + "\n" +
-    "PASS: " + pass + "\n" +
-    "RED: " + red;
+document.getElementById("status").innerHTML =
+    'FINAL TEST COMPLETE<br>' +
+    'Total: ' + total + ' &nbsp; ' +
+    '<span style="color:#1565c0;">PASS: ' + pass + '</span> &nbsp; ' +
+    '<span style="color:#d32f2f;">RED: ' + red + '</span>';
 submitFinalResults();
-
   document.getElementById("stopBtn").style.display =
     "none";
 }
