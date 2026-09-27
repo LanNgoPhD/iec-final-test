@@ -1028,11 +1028,7 @@ function lockResponse(reason) {
  } else {
 
   const expected = WORDS[currentIndex].english;
-alert(
-  "ANSWER=[" + normalizeAnswer(finalAnswer) + "]" +
-  "\nEXPECTED=[" + normalizeAnswer(expected) + "]" +
-  "\nEQUAL=" + isCorrectAnswer(finalAnswer, expected)
-);
+
   if (isCorrectAnswer(finalAnswer, expected)) {
     status = "PASS";
   } else {
