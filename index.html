@@ -1032,7 +1032,7 @@ function lockResponse(reason) {
   if (isCorrectAnswer(finalAnswer, expected)) {
     status = "PASS";
   } else {
-    status = "RED - WRONG";
+   status = "PENDING";
   }
 }
 
@@ -1187,15 +1187,17 @@ function finishTest() {
   document.getElementById("finalAnswer").textContent = "";
   document.getElementById("restartInfo").textContent = "";
 
- const total = finalResults.length;
+const total = finalResults.length;
 const pass = finalResults.filter(r => r.result === "PASS").length;
-const red = total - pass;
+const pending = finalResults.filter(r => r.result === "PENDING").length;
+const red = total - pass - pending;
 
 document.getElementById("status").innerHTML =
     'FINAL TEST COMPLETE<br>' +
     'Total: ' + total + ' &nbsp; ' +
     '<span style="color:#1565c0;">PASS: ' + pass + '</span> &nbsp; ' +
-    '<span style="color:#d32f2f;">RED: ' + red + '</span>';
+'<span style="color:#d32f2f;">RED: ' + red + '</span> &nbsp; ' +
+'<span style="color:#2e7d32;">PENDING: ' + pending + '</span>';
 submitFinalResults();
   document.getElementById("stopBtn").style.display =
     "none";
