@@ -1028,7 +1028,7 @@ function lockResponse(reason) {
  } else {
 
   const expected = WORDS[currentIndex].english;
-
+alert("CHECK: [" + finalAnswer + "] === [" + expected + "] | INDEX=" + currentIndex + " | CORE=" + WORDS[currentIndex].coreId);
   if (isCorrectAnswer(finalAnswer, expected)) {
     status = "PASS";
   } else {
