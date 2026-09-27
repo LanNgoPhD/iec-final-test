@@ -1,143 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>IEC – FINAL TEST V3</title>
-
 <style>
 body {
   font-family: Arial, sans-serif;
-  background:#f5f6fa;
-  margin:0;
-  padding:20px;
+  background: #f5f6fa;
+  margin: 0;
+  padding: 20px;
+  color: #202124;
 }
 .box {
-  max-width:680px;
-  margin:30px auto;
-  background:white;
-  padding:28px;
-  border-radius:16px;
-  box-shadow:0 2px 12px rgba(0,0,0,.12);
+  max-width: 720px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
 }
-h1 { margin-top:0; }
-#progress { color:#666; margin-bottom:20px; }
-.label { color:#666; font-size:14px; margin-top:18px; }
+h1 { margin-top: 0; }
+.row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  margin-top: 18px;
+}
+.field label {
+  display: block;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.field input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #c7c7c7;
+  border-radius: 8px;
+  font-size: 16px;
+}
+#progress { color: #666; margin-bottom: 20px; }
+.label { color: #666; font-size: 14px; margin-top: 18px; }
 #vietnamese {
-  font-size:34px;
-  font-weight:bold;
-  margin-top:8px;
-  min-height:42px;
+  font-size: 34px;
+  font-weight: bold;
+  margin-top: 8px;
+  min-height: 42px;
 }
 #timer {
-  font-size:44px;
-  font-weight:bold;
-  margin-top:8px;
+  font-size: 44px;
+  font-weight: bold;
+  margin-top: 8px;
 }
 #heard, #firstAnswer, #finalAnswer {
-  font-size:20px;
-  min-height:28px;
-  margin-top:6px;
+  font-size: 20px;
+  min-height: 28px;
+  margin-top: 6px;
 }
 #status {
-  font-size:20px;
-  font-weight:bold;
-  min-height:30px;
-  margin-top:20px;
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 30px;
+  margin-top: 20px;
 }
 #restartInfo {
-  margin-top:10px;
-  font-weight:bold;
+  margin-top: 10px;
+  font-weight: bold;
 }
 button {
-  width:100%;
-  padding:16px;
-  border:0;
-  border-radius:10px;
-  font-size:18px;
-  font-weight:bold;
-  cursor:pointer;
-  margin-top:20px;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
 }
-#startBtn { background:#1a73e8; color:white; }
-#stopBtn {
-  background:#b3261e;
-  color:white;
-  display:none;
-}
+button:disabled { opacity: .6; cursor: default; }
+#startBtn { background: #1a73e8; color: white; }
+#stopBtn { background: #b3261e; color: white; display: none; }
 .note {
-  margin-top:22px;
-  color:#777;
-  font-size:13px;
-  line-height:1.5;
+  margin-top: 22px;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.error { color: #b3261e; }
+@media (max-width: 560px) {
+  .row { grid-template-columns: 1fr; }
+  #vietnamese { font-size: 29px; }
 }
 </style>
 </head>
-
 <body>
-
 <div class="box">
+  <h1>IEC – FINAL TEST V3</h1>
 
-<h1>IEC – FINAL TEST V3</h1>
-
-<div id="intro">
-  START một lần. Nếu muốn sửa câu, nói <b>AGAIN</b>.
-</div>
-
-<button id="startBtn" onclick="startTest()">START</button>
-
-<div id="testArea" style="display:none">
-
-  <div id="progress"></div>
-
-  <div class="label">Vietnamese</div>
-  <div id="vietnamese">---</div>
-
-  <div class="label">Reaction time</div>
-  <div id="timer">--</div>
-
-  <div class="label">Live recognized</div>
-  <div id="heard">---</div>
-
-  <div class="label">First answer</div>
-  <div id="firstAnswer">---</div>
-
-  <div class="label">Final answer</div>
-  <div id="finalAnswer">---</div>
-
-  <div id="restartInfo"></div>
-  <div id="status"></div>
-
-  <button id="stopBtn" onclick="stopTest()">STOP TEST</button>
-
-  <div class="note">
-    Pilot: AGAIN tối đa 1 lần. Reaction không reset khi AGAIN.
+  <div id="intro">
+    START once. If you want to replace your current answer, say <b>AGAIN</b>.
   </div>
 
+  <div class="row" id="identityArea">
+    <div class="field">
+      <label for="studentId">STUDENT_ID</label>
+      <input id="studentId" autocomplete="off" placeholder="e.g. Test 01">
+    </div>
+    <div class="field">
+      <label for="day">DAY</label>
+      <input id="day" type="number" min="1" max="14" value="1">
+    </div>
+  </div>
+
+  <button id="startBtn" disabled>LOADING CONFIG...</button>
+
+  <div id="testArea" style="display:none">
+    <div id="progress"></div>
+
+    <div class="label">Vietnamese</div>
+    <div id="vietnamese">---</div>
+
+    <div class="label">Reaction time</div>
+    <div id="timer">--</div>
+
+    <div class="label">Live recognized</div>
+    <div id="heard">---</div>
+
+    <div class="label">First answer</div>
+    <div id="firstAnswer">---</div>
+
+    <div class="label">Final answer</div>
+    <div id="finalAnswer">---</div>
+
+    <div id="restartInfo"></div>
+    <div id="status"></div>
+
+    <button id="stopBtn">STOP TEST</button>
+
+    <div class="note">
+      AGAIN tối đa 1 lần. Reaction time không reset khi AGAIN.<br>
+      FINAL dùng microphone trên trang GitHub Pages HTTPS, không chạy microphone trong Apps Script iframe.
+    </div>
+  </div>
 </div>
-</div>
+
+<iframe name="finalSubmitFrame" style="display:none"></iframe>
 
 <script>
+"use strict";
 
 // =====================================================
-// TEMP CONFIG — SAU KHI PASS SẼ LẤY TỪ GOOGLE SHEET
+// API
+// Keep one public Apps Script deployment URL for GET/POST.
+// Editing the existing deployment to a New version keeps this URL.
 // =====================================================
+
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec";
+
 let CONFIG = null;
-
-const CONFIG_API =
-"https://script.google.com/a/macros/vimaru.edu.vn/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-config";
-const WORDS_API =
-  "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec?api=final-test&student=Test%2001&day=1";
 let WORDS = [];
-
 
 // =====================================================
 // STATE
 // =====================================================
 
 let recognition = null;
-
 let currentIndex = 0;
 let testRunning = false;
 let responseLocked = false;
@@ -153,256 +183,301 @@ let silenceTimer = null;
 let currentUtterance = "";
 let firstAnswer = "";
 let finalAnswer = "";
-
 let restartCount = 0;
-
 let speechSeenInSession = false;
-// Kết quả từng từ trong FINAL hiện tại
+
 let finalResults = [];
+let currentStudentId = "";
+let currentDay = 0;
+let sessionId = "";
+
+// PRON / ENDING fields are intentionally preserved for the agreed engine.
+// Current Web Speech pilot does not fabricate these scores.
+let currentPronScore = null;
+let currentEndingScore = null;
 
 // =====================================================
-// START TEST
+// INIT
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("startBtn").addEventListener("click", startTest);
+  document.getElementById("stopBtn").addEventListener("click", stopTest);
+
+  const params = new URLSearchParams(window.location.search);
+  const studentParam = String(params.get("student") || "").trim();
+  const dayParam = Number(params.get("day"));
+
+  if (studentParam) {
+    document.getElementById("studentId").value = studentParam;
+  }
+
+  if (dayParam >= 1 && dayParam <= 14) {
+    document.getElementById("day").value = String(dayParam);
+  }
+
+  loadConfigAtStartup();
+});
+
+async function loadConfigAtStartup() {
+  const btn = document.getElementById("startBtn");
+  btn.disabled = true;
+  btn.textContent = "LOADING CONFIG...";
+
+  try {
+    CONFIG = await jsonp(API_BASE + "?api=final-config");
+
+    if (!CONFIG || CONFIG.ok === false) {
+      throw new Error(CONFIG && CONFIG.error ? CONFIG.error : "Invalid CONFIG response");
+    }
+
+    validateConfig(CONFIG);
+
+    btn.disabled = false;
+    btn.textContent = "START";
+
+  } catch (error) {
+    console.error(error);
+    btn.disabled = true;
+    btn.textContent = "CONFIG ERROR";
+    showFatal(
+      "CONFIG ERROR: " + error.message +
+      "\nReload the page after Apps Script deployment is updated."
+    );
+  }
+}
+
+function validateConfig(config) {
+  const required = [
+    "REACTION_LIMIT_SEC",
+    "PRON_MIN_SCORE",
+    "ENDING_MIN_SCORE",
+    "REPAIR_LIMIT",
+    "FINAL_RED_LIMIT",
+    "FINAL_RANDOM_LIMIT",
+    "SILENCE_END_SEC",
+    "NEXT_DELAY_SEC",
+    "RESULT_DISPLAY_SEC",
+    "MAX_SPEECH_SEC",
+    "RESTART_WORD",
+    "MAX_RESTART",
+    "RESTART_POLICY"
+  ];
+
+  const missing = required.filter(function(key) {
+    return config[key] === undefined ||
+           config[key] === null ||
+           config[key] === "";
+  });
+
+  if (missing.length) {
+    throw new Error("Missing CONFIG: " + missing.join(", "));
+  }
+}
+
+// =====================================================
+// START
 // =====================================================
 
 async function startTest() {
+  if (testRunning) return;
 
-  const startBtn =
-    document.getElementById("startBtn");
+  const startBtn = document.getElementById("startBtn");
+  const studentInput = document.getElementById("studentId");
+  const dayInput = document.getElementById("day");
 
-  startBtn.disabled = true;
-  startBtn.textContent = "LOADING CONFIG...";
+  currentStudentId = String(studentInput.value || "").trim();
+  currentDay = Number(dayInput.value);
 
-  // LOAD CONFIG FROM GOOGLE SHEET
-  try {
-
-    CONFIG = await new Promise(function(resolve, reject) {
-
-  const callbackName =
-    "finalConfigCallback_" + Date.now();
-
-  const script =
-    document.createElement("script");
-
-  const timer =
-    setTimeout(function() {
-
-      cleanup();
-      reject(new Error("CONFIG timeout"));
-
-    }, 10000);
-
-  function cleanup() {
-
-    clearTimeout(timer);
-
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
-
-    try {
-      delete window[callbackName];
-    } catch (e) {
-      window[callbackName] = undefined;
-    }
-  }
-
-  window[callbackName] = function(data) {
-
-    cleanup();
-    resolve(data);
-  };
-
-  script.onerror = function() {
-
-    cleanup();
-    reject(new Error("CONFIG JSONP load failed"));
-  };
-
-  script.src =
-    CONFIG_API +
-    "&callback=" +
-    encodeURIComponent(callbackName) +
-    "&_=" +
-    Date.now();
-
-  document.head.appendChild(script);
-});
-// LOAD CORE_300 WORDS FROM GOOGLE SHEET
-WORDS = await new Promise(function(resolve, reject) {
-
-  const callbackName =
-    "finalWordsCallback_" + Date.now();
-
-  const script =
-    document.createElement("script");
-
-  const timer =
-    setTimeout(function() {
-
-      cleanup();
-      reject(new Error("WORDS timeout"));
-
-    }, 10000);
-
-  function cleanup() {
-
-    clearTimeout(timer);
-
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
-
-    try {
-      delete window[callbackName];
-    } catch (e) {
-      window[callbackName] = undefined;
-    }
-  }
-
-window[callbackName] = function(data) {
-
-  cleanup();
-
-  // DAY 7 / DAY 14: không còn RED => nghỉ
-  if (data.rest === true) {
-    resolve([]);
+  if (!currentStudentId) {
+    alert("STUDENT_ID is required.");
+    studentInput.focus();
     return;
   }
 
-  if (!Array.isArray(data.words)) {
-    reject(new Error("Invalid FINAL data"));
+  if (!currentDay || currentDay < 1 || currentDay > 14) {
+    alert("DAY must be from 1 to 14.");
+    dayInput.focus();
     return;
   }
 
-  resolve(data.words);
-};
-
-  script.onerror = function() {
-
-    cleanup();
-    reject(new Error("WORDS JSONP load failed"));
-  };
-
-  script.src =
-    WORDS_API +
-    "&callback=" +
-    encodeURIComponent(callbackName) +
-    "&_=" +
-    Date.now();
-
-  document.head.appendChild(script);
-});
-
-if (!Array.isArray(WORDS)) {
-  throw new Error("FINAL WORDS invalid");
-}
-
-if (WORDS.length === 0) {
-  startBtn.disabled = false;
-  startBtn.textContent = "NO RED – REST TODAY";
-  return;
-}
-
-// Đổi tên STT từ API thành coreId mà engine hiện tại đang dùng
-WORDS = WORDS.map(function(w) {
-  return {
-    coreId: Number(w.stt),
-    vietnamese: w.vietnamese,
-    english: w.english,
-    ipa: w.ipa || "",
-    pronNote: w.pronNote || "",
-    chapter: w.chapter || "",
-    day: w.day
-  };
-});
-// TEMP TEST: chỉ chạy 2 từ
-WORDS = WORDS.slice(0, 2);
-    const required = [
-      "REACTION_LIMIT_SEC",
-      "PRON_MIN_SCORE",
-      "ENDING_MIN_SCORE",
-      "REPAIR_LIMIT",
-      "FINAL_RED_LIMIT",
-      "FINAL_RANDOM_LIMIT",
-      "SILENCE_END_SEC",
-      "NEXT_DELAY_SEC",
-      "RESULT_DISPLAY_SEC",
-      "MAX_SPEECH_SEC",
-      "RESTART_WORD",
-      "MAX_RESTART",
-      "RESTART_POLICY"
-    ];
-
-    const missing =
-      required.filter(function(key) {
-        return (
-          CONFIG[key] === undefined ||
-          CONFIG[key] === null ||
-          CONFIG[key] === ""
-        );
-      });
-
-    if (missing.length > 0) {
-      throw new Error(
-        "Missing CONFIG: " + missing.join(", ")
-      );
-    }
-
-    console.log("FINAL CONFIG FROM SHEET:", CONFIG);
-
-  } catch(error) {
-
-    console.error("CONFIG LOAD ERROR:", error);
-
-    startBtn.disabled = false;
-    startBtn.textContent = "START";
-
-    alert(
-      "CONFIG ERROR\n\n" +
-      "Không tải được cấu hình bài thi.\n" +
-      "Bài thi chưa được bắt đầu.\n\n" +
-      error.message
-    );
-
+  if (!CONFIG) {
+    alert("CONFIG is not ready. Reload the page.");
     return;
   }
 
-  // CHECK SPEECH RECOGNITION
-  const SR =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
-
-    startBtn.disabled = false;
-    startBtn.textContent = "START";
-
-    alert("Speech Recognition is not supported.");
+    alert("Speech Recognition is not supported. Use Google Chrome.");
     return;
   }
 
-  // START TEST
-  startBtn.style.display = "none";
+  startBtn.disabled = true;
+  startBtn.textContent = "MIC PERMISSION...";
 
-  document.getElementById("testArea")
-    .style.display = "block";
+  try {
+    // IMPORTANT: explicit microphone permission is requested directly
+    // from the user's START click on this top-level HTTPS page.
+    await ensureMicrophonePermission();
 
-  document.getElementById("stopBtn")
-    .style.display = "block";
+    startBtn.textContent = "LOADING TEST...";
 
-  currentIndex = 0;
-  testRunning = true;
+    const testData = await jsonp(
+      API_BASE +
+      "?api=final-test" +
+      "&student=" + encodeURIComponent(currentStudentId) +
+      "&day=" + encodeURIComponent(currentDay)
+    );
 
-  prepareWord();
+    if (!testData || testData.ok === false) {
+      throw new Error(testData && testData.error ? testData.error : "Invalid FINAL data");
+    }
+
+    if (testData.rest === true || !Array.isArray(testData.words) || testData.words.length === 0) {
+      startBtn.disabled = false;
+      startBtn.textContent = "NO RED – REST TODAY";
+      return;
+    }
+
+    WORDS = testData.words.map(function(w) {
+      return {
+        coreId: Number(w.stt),
+        vietnamese: String(w.vietnamese || ""),
+        english: String(w.english || ""),
+        ipa: String(w.ipa || ""),
+        pronNote: String(w.pronNote || ""),
+        chapter: String(w.chapter || ""),
+        day: Number(w.day) || currentDay,
+        source: String(w.source || "RANDOM").toUpperCase()
+      };
+    });
+
+    finalResults = [];
+    sessionId = makeSessionId();
+
+    studentInput.disabled = true;
+    dayInput.disabled = true;
+    startBtn.style.display = "none";
+
+    document.getElementById("testArea").style.display = "block";
+    document.getElementById("stopBtn").style.display = "block";
+
+    currentIndex = 0;
+    testRunning = true;
+
+    prepareWord();
+
+  } catch (error) {
+    console.error(error);
+    startBtn.disabled = false;
+    startBtn.textContent = "START";
+
+    const msg = String(error && error.message ? error.message : error);
+
+    if (/permission|notallowed|not allowed|denied/i.test(msg)) {
+      alert(
+        "MICROPHONE NOT ALLOWED\n\n" +
+        "Allow microphone for this GitHub Pages site, then reload.\n" +
+        "Site: " + window.location.origin + "\n\n" +
+        msg
+      );
+    } else {
+      alert("START ERROR\n\n" + msg);
+    }
+  }
 }
 
+async function ensureMicrophonePermission() {
+  if (window.top !== window.self) {
+    throw new Error("FINAL TEST must be opened as a top-level page, not inside an iframe.");
+  }
+
+  if (window.location.protocol !== "https:") {
+    throw new Error("FINAL TEST requires HTTPS for microphone access.");
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    // Web Speech may still exist on some browsers; do not fabricate failure.
+    return;
+  }
+
+  let stream = null;
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+  } catch (error) {
+    throw new Error(
+      "Microphone permission denied: " +
+      String(error && error.name ? error.name : error)
+    );
+  } finally {
+    if (stream) {
+      stream.getTracks().forEach(function(track) {
+        track.stop();
+      });
+    }
+  }
+}
+
+// =====================================================
+// JSONP
+// Avoids CORS problems with Apps Script ContentService.
+// =====================================================
+
+function jsonp(url) {
+  return new Promise(function(resolve, reject) {
+    const callbackName =
+      "iecCallback_" + Date.now() + "_" + Math.floor(Math.random() * 1000000);
+
+    const script = document.createElement("script");
+
+    const timer = setTimeout(function() {
+      cleanup();
+      reject(new Error("API timeout"));
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timer);
+
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
+      try {
+        delete window[callbackName];
+      } catch (e) {
+        window[callbackName] = undefined;
+      }
+    }
+
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      reject(new Error("API JSONP load failed"));
+    };
+
+    script.src =
+      url +
+      (url.indexOf("?") >= 0 ? "&" : "?") +
+      "callback=" + encodeURIComponent(callbackName) +
+      "&_=" + Date.now();
+
+    document.head.appendChild(script);
+  });
+}
 
 // =====================================================
 // PREPARE CORE
 // =====================================================
 
 function prepareWord() {
-
   if (!testRunning) return;
 
   if (currentIndex >= WORDS.length) {
@@ -411,17 +486,18 @@ function prepareWord() {
   }
 
   clearTimers();
+  safeAbortRecognition();
 
   responseLocked = false;
-
   wordStartTime = null;
   firstSpeechTime = null;
 
   currentUtterance = "";
   firstAnswer = "";
   finalAnswer = "";
-
   restartCount = 0;
+  currentPronScore = null;
+  currentEndingScore = null;
 
   document.getElementById("progress").textContent =
     (currentIndex + 1) + " / " + WORDS.length;
@@ -434,32 +510,24 @@ function prepareWord() {
   document.getElementById("firstAnswer").textContent = "---";
   document.getElementById("finalAnswer").textContent = "---";
   document.getElementById("restartInfo").textContent = "";
-  document.getElementById("status").textContent =
-    "Preparing microphone...";
+  document.getElementById("status").textContent = "Preparing microphone...";
 
-  /*
-    CORE đầu tiên:
-    mic READY rồi mới hiện từ và đặt T0.
-  */
-
-  startRecognitionSession(true);
+  // The word is shown only after recognition.onstart.
+  // T0 therefore starts when the microphone is actually ready.
+  startRecognitionSession("PRIMARY", true);
 }
 
-
 // =====================================================
-// START ONE RECOGNITION SESSION
+// SPEECH RECOGNITION SESSION
+// mode: PRIMARY | AGAIN_WINDOW | REANSWER
 // =====================================================
 
-function startRecognitionSession(isFirstSession) {
-
+function startRecognitionSession(mode, showWordOnStart) {
   if (!testRunning || responseLocked) return;
 
-  const SR =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   recognition = new SR();
-
   recognition.lang = "en-US";
   recognition.continuous = false;
   recognition.interimResults = true;
@@ -468,58 +536,47 @@ function startRecognitionSession(isFirstSession) {
   currentUtterance = "";
   speechSeenInSession = false;
 
-
-  // ---------------------------------------------------
-  // MIC READY
-  // ---------------------------------------------------
-
   recognition.onstart = function() {
-
     if (!testRunning || responseLocked) return;
 
-    if (isFirstSession) {
-
+    if (showWordOnStart) {
       const item = WORDS[currentIndex];
 
       document.getElementById("vietnamese").textContent =
         item.vietnamese;
 
-      /*
-        T0 chỉ đặt 1 lần.
-      */
-
-      wordStartTime = performance.now();
-
-      startReactionTimer();
+      if (wordStartTime === null) {
+        wordStartTime = performance.now();
+        startReactionTimer();
+      }
     }
 
-    document.getElementById("heard").textContent =
-      "Listening...";
+    document.getElementById("heard").textContent = "Listening...";
 
-    document.getElementById("status").textContent =
-      restartCount === 0
-        ? "LISTENING"
-        : "LISTENING – REANSWER";
+    if (mode === "REANSWER") {
+      document.getElementById("status").textContent = "LISTENING – REANSWER";
+    } else if (mode === "AGAIN_WINDOW") {
+      document.getElementById("status").textContent = "Say AGAIN now if you want to correct";
+
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(function() {
+        if (!responseLocked && testRunning) {
+          safeAbortRecognition();
+          finalizeCurrentAnswer();
+        }
+      }, Number(CONFIG.SILENCE_END_SEC) * 1000);
+    } else {
+      document.getElementById("status").textContent = "LISTENING";
+    }
   };
 
-
-  // ---------------------------------------------------
-  // SPEECH START
-  // ---------------------------------------------------
-
   recognition.onspeechstart = function() {
-
     if (!testRunning || responseLocked) return;
 
     speechSeenInSession = true;
-
-    /*
-      Reaction chỉ chốt lần nói đầu tiên của CORE.
-      AGAIN tuyệt đối không reset.
-    */
+    clearTimeout(silenceTimer);
 
     if (firstSpeechTime === null) {
-
       firstSpeechTime = performance.now();
 
       const reaction =
@@ -529,28 +586,19 @@ function startRecognitionSession(isFirstSession) {
 
       document.getElementById("timer").textContent =
         reaction.toFixed(2) + " s";
-
-      startMaxSpeechTimer();
     }
+
+    // Max speech applies to every spoken attempt, including REANSWER.
+    startMaxSpeechTimer();
   };
 
-
-  // ---------------------------------------------------
-  // RESULT
-  // ---------------------------------------------------
-
   recognition.onresult = function(event) {
-
     if (!testRunning || responseLocked) return;
 
     let bestText = "";
 
-    for (let i = 0;
-         i < event.results.length;
-         i++) {
-
-      bestText +=
-        event.results[i][0].transcript + " ";
+    for (let i = 0; i < event.results.length; i++) {
+      bestText += event.results[i][0].transcript + " ";
     }
 
     currentUtterance =
@@ -560,29 +608,33 @@ function startRecognitionSession(isFirstSession) {
       currentUtterance || "Listening...";
   };
 
-
-  // ---------------------------------------------------
-  // SPEECH END
-  // ---------------------------------------------------
-
   recognition.onspeechend = function() {
-
     if (!testRunning || responseLocked) return;
 
-    document.getElementById("status").textContent =
-      "Processing...";
+    clearTimeout(maxSpeechTimer);
+    maxSpeechTimer = null;
+
+    document.getElementById("status").textContent = "Processing...";
   };
 
-
-  // ---------------------------------------------------
-  // ERROR
-  // ---------------------------------------------------
-
   recognition.onerror = function(event) {
-
     if (!testRunning || responseLocked) return;
 
     if (event.error === "no-speech") {
+      return;
+    }
+
+    if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+      testRunning = false;
+      clearTimers();
+      document.getElementById("status").textContent =
+        "MIC ERROR: " + event.error;
+
+      alert(
+        "MICROPHONE NOT ALLOWED\n\n" +
+        "Allow microphone for " + window.location.origin +
+        " and reload this GitHub Pages URL."
+      );
       return;
     }
 
@@ -590,36 +642,23 @@ function startRecognitionSession(isFirstSession) {
       "MIC ERROR: " + event.error;
   };
 
-
-  // ---------------------------------------------------
-  // SESSION END
-  // ---------------------------------------------------
-
   recognition.onend = function() {
-
     if (!testRunning || responseLocked) return;
 
-    /*
-      Chưa hề nói.
-    */
+    clearTimeout(maxSpeechTimer);
+    maxSpeechTimer = null;
 
     if (!speechSeenInSession) {
-
-      if (firstSpeechTime === null) {
-
+      if (mode === "PRIMARY" && firstSpeechTime === null) {
         const elapsed =
           wordStartTime === null
             ? 0
             : (performance.now() - wordStartTime) / 1000;
 
-        if (elapsed < CONFIG.REACTION_LIMIT_SEC) {
-
-          /*
-            Mic tự đóng sớm.
-            Mở lại nhưng KHÔNG reset T0.
-          */
-
-          startRecognitionSession(false);
+        if (elapsed < Number(CONFIG.REACTION_LIMIT_SEC)) {
+          // Chrome may close a no-speech session early.
+          // Restart without resetting wordStartTime / reaction T0.
+          startRecognitionSession("PRIMARY", false);
           return;
         }
 
@@ -627,116 +666,76 @@ function startRecognitionSession(isFirstSession) {
         return;
       }
 
-      /*
-        Đã có answer trước đó nhưng session mới
-        không nghe được gì.
-      */
+      if (mode === "REANSWER") {
+        finalizeCurrentAnswer();
+        return;
+      }
 
-      finalizeCurrentAnswer();
-      return;
+      // AGAIN window ended silently: keep first answer.
+      if (mode === "AGAIN_WINDOW") {
+        finalizeCurrentAnswer();
+        return;
+      }
     }
 
-    processUtterance(currentUtterance);
+    processUtterance(currentUtterance, mode);
   };
-
 
   try {
     recognition.start();
-  } catch(e) {
+  } catch (error) {
     document.getElementById("status").textContent =
-      "START ERROR: " + e.message;
+      "START ERROR: " + error.message;
   }
 }
 
-
 // =====================================================
-// PROCESS ONE UTTERANCE
+// UTTERANCE / AGAIN
 // =====================================================
 
-function processUtterance(text) {
-
+function processUtterance(text, mode) {
   if (!testRunning || responseLocked) return;
 
-  const cleaned =
-    String(text || "")
-      .trim()
-      .replace(/\s+/g, " ");
+  const cleaned = String(text || "")
+    .trim()
+    .replace(/\s+/g, " ");
 
   if (!cleaned) {
-
     finalizeCurrentAnswer();
     return;
   }
 
   const restartWord =
-    CONFIG.RESTART_WORD.toLowerCase();
+    String(CONFIG.RESTART_WORD || "AGAIN").trim().toLowerCase();
 
-  const normalized =
-    cleaned.toLowerCase();
-
-
-  // ===================================================
-  // CASE 1:
-  // "AGAIN" đứng một mình
-  // ===================================================
+  const normalized = cleaned.toLowerCase();
 
   if (normalized === restartWord) {
-
     handleAgain();
     return;
   }
 
+  const tokens = cleaned.split(/\s+/);
 
-  // ===================================================
-  // CASE 2:
-  // Recognition trả cùng một utterance:
-  // "two stroke engine again"
-  // ===================================================
-
-  const tokens =
-    cleaned.split(/\s+/);
-
-  const againIndex =
-    tokens.findIndex(function(token) {
-
-      return cleanToken(token).toLowerCase() === restartWord;
-
-    });
-
+  const againIndex = tokens.findIndex(function(token) {
+    return cleanToken(token).toLowerCase() === restartWord;
+  });
 
   if (againIndex >= 0) {
-
     const beforeAgain =
-      tokens
-        .slice(0, againIndex)
-        .join(" ")
-        .trim();
+      tokens.slice(0, againIndex).join(" ").trim();
 
     const afterAgain =
-      tokens
-        .slice(againIndex + 1)
-        .join(" ")
-        .trim();
-
+      tokens.slice(againIndex + 1).join(" ").trim();
 
     if (beforeAgain && !firstAnswer) {
-
       firstAnswer = beforeAgain;
-
-      document.getElementById("firstAnswer").textContent =
-        firstAnswer;
+      document.getElementById("firstAnswer").textContent = firstAnswer;
     }
 
-
-    if (restartCount >= CONFIG.MAX_RESTART) {
-
+    if (restartCount >= Number(CONFIG.MAX_RESTART)) {
       document.getElementById("restartInfo").textContent =
         "RESTART LIMIT REACHED";
-
-      /*
-        Không cho restart lần nữa.
-        Lấy phần hợp lệ hiện có.
-      */
 
       if (!finalAnswer) {
         finalAnswer = beforeAgain || cleaned;
@@ -746,161 +745,82 @@ function processUtterance(text) {
       return;
     }
 
-
     restartCount++;
-
     document.getElementById("restartInfo").textContent =
       "RESTART = " + restartCount;
 
-
-    /*
-      Nếu recognition đã nghe luôn answer mới
-      phía sau AGAIN:
-      dùng luôn phần sau làm final.
-    */
-
     if (afterAgain) {
-
       finalAnswer = afterAgain;
-
-      document.getElementById("finalAnswer").textContent =
-        finalAnswer;
-
+      document.getElementById("finalAnswer").textContent = finalAnswer;
       finalizeCurrentAnswer();
       return;
     }
 
-
-    /*
-      Nếu AGAIN ở cuối:
-      mở session mới để nghe câu sửa.
-    */
-
+    finalAnswer = "";
+    document.getElementById("finalAnswer").textContent =
+      "WAITING FOR REANSWER...";
     document.getElementById("heard").textContent =
       "AGAIN → answer again";
+    document.getElementById("status").textContent = "REANSWER";
 
-    document.getElementById("status").textContent =
-      "REANSWER";
-
-    startRecognitionSession(false);
+    startRecognitionSession("REANSWER", false);
     return;
   }
 
-
-  // ===================================================
-  // NORMAL ANSWER
-  // ===================================================
+  if (mode === "AGAIN_WINDOW") {
+    // Only AGAIN may replace the first answer.
+    // Any other utterance in this short window is ignored.
+    finalizeCurrentAnswer();
+    return;
+  }
 
   if (restartCount === 0) {
-
-    /*
-      Đây là answer đầu tiên.
-      Chưa khóa ngay:
-      mở thêm một recognition session ngắn
-      để SV có thể nói AGAIN.
-    */
-
     firstAnswer = cleaned;
-
-    document.getElementById("firstAnswer").textContent =
-      firstAnswer;
-
     finalAnswer = cleaned;
 
-    document.getElementById("finalAnswer").textContent =
-      finalAnswer;
+    document.getElementById("firstAnswer").textContent = firstAnswer;
+    document.getElementById("finalAnswer").textContent = finalAnswer;
 
-    document.getElementById("status").textContent =
-      "Say AGAIN now if you want to correct";
-
-    /*
-      Cửa nghe tiếp.
-      SILENCE_END_SEC được dùng để tránh chờ vô hạn.
-    */
-
-    clearTimeout(silenceTimer);
-
-    silenceTimer = setTimeout(function() {
-
-      if (!responseLocked) {
-        finalizeCurrentAnswer();
-      }
-
-    }, CONFIG.SILENCE_END_SEC * 1000);
-
-    /*
-      Đồng thời mở recognition mới.
-      Nếu SV nói AGAIN trước khi timer hết,
-      session này sẽ bắt được.
-    */
-
-    startRecognitionSession(false);
-
+    startRecognitionSession("AGAIN_WINDOW", false);
     return;
   }
 
-
-  // ===================================================
-  // ANSWER AFTER AGAIN
-  // ===================================================
-
   finalAnswer = cleaned;
-
-  document.getElementById("finalAnswer").textContent =
-    finalAnswer;
-
+  document.getElementById("finalAnswer").textContent = finalAnswer;
   finalizeCurrentAnswer();
 }
 
-
-// =====================================================
-// AGAIN STANDALONE
-// =====================================================
-
 function handleAgain() {
-
-  if (restartCount >= CONFIG.MAX_RESTART) {
-
+  if (restartCount >= Number(CONFIG.MAX_RESTART)) {
     document.getElementById("restartInfo").textContent =
       "RESTART LIMIT REACHED";
-
     finalizeCurrentAnswer();
     return;
   }
 
   restartCount++;
-
   clearTimeout(silenceTimer);
 
   document.getElementById("restartInfo").textContent =
     "RESTART = " + restartCount;
 
-  /*
-    Không reset firstSpeechTime.
-    Không reset wordStartTime.
-  */
-
+  // Reaction time is intentionally NOT reset.
   finalAnswer = "";
 
   document.getElementById("finalAnswer").textContent =
     "WAITING FOR REANSWER...";
-
   document.getElementById("heard").textContent =
     "AGAIN → answer again";
+  document.getElementById("status").textContent = "REANSWER";
 
-  document.getElementById("status").textContent =
-    "REANSWER";
-
-  startRecognitionSession(false);
+  startRecognitionSession("REANSWER", false);
 }
 
-
 // =====================================================
-// FINALIZE
+// FINALIZE / LOCK
 // =====================================================
 
 function finalizeCurrentAnswer() {
-
   if (!testRunning || responseLocked) return;
 
   if (!finalAnswer && currentUtterance) {
@@ -913,21 +833,92 @@ function finalizeCurrentAnswer() {
   lockResponse("ANSWER");
 }
 
+function lockResponse(reason) {
+  if (!testRunning || responseLocked) return;
+
+  responseLocked = true;
+  clearTimers();
+  safeAbortRecognition();
+
+  const item = WORDS[currentIndex];
+
+  let status = "";
+  let failReason = "";
+
+  if (reason === "REACTION") {
+    status = "RED – REACTION";
+    failReason = "SLOW";
+
+    document.getElementById("heard").textContent = "(no answer)";
+    document.getElementById("finalAnswer").textContent = "(no answer)";
+
+  } else if (!finalAnswer) {
+    status = "RED – NO ANSWER";
+    failReason = "NO_ANSWER";
+
+  } else if (
+    restartCount > 0 &&
+    String(CONFIG.RESTART_POLICY || "LOG").toUpperCase() === "FAIL"
+  ) {
+    status = "RED – RESTART";
+    failReason = "RESTART";
+
+  } else if (isCorrectAnswer(finalAnswer, item.english)) {
+    // Current V3 pilot keeps the original term-result behavior.
+    // PRON / ENDING fields are retained for the next scorer and are NOT fabricated.
+    status = "PASS";
+
+  } else {
+    status = "PENDING";
+    failReason = "WRONG";
+  }
+
+  document.getElementById("status").textContent = status;
+
+  const reaction =
+    firstSpeechTime !== null && wordStartTime !== null
+      ? (firstSpeechTime - wordStartTime) / 1000
+      : null;
+
+  finalResults.push({
+    studentId: currentStudentId,
+    coreId: item.coreId,
+    vietnamese: item.vietnamese,
+    english: item.english,
+    source: item.source,
+    reaction: reaction,
+    firstAnswer: firstAnswer || "",
+    finalAnswer: finalAnswer || "",
+    restartCount: restartCount,
+    restartPolicy: String(CONFIG.RESTART_POLICY || "LOG"),
+    pronScore: currentPronScore,
+    endingScore: currentEndingScore,
+    failReason: failReason,
+    result: status
+  });
+
+  setTimeout(function() {
+    if (!testRunning) return;
+
+    setTimeout(function() {
+      if (!testRunning) return;
+      currentIndex++;
+      prepareWord();
+    }, Number(CONFIG.NEXT_DELAY_SEC) * 1000);
+
+  }, Number(CONFIG.RESULT_DISPLAY_SEC) * 1000);
+}
 
 // =====================================================
-// REACTION TIMER
+// REACTION / SPEECH TIMERS
 // =====================================================
 
 function startReactionTimer() {
-
   stopReactionTimer();
 
   reactionClock = setInterval(function() {
-
-    if (!testRunning ||
-        responseLocked ||
-        firstSpeechTime !== null ||
-        wordStartTime === null) {
+    if (!testRunning || responseLocked ||
+        firstSpeechTime !== null || wordStartTime === null) {
       return;
     }
 
@@ -936,225 +927,132 @@ function startReactionTimer() {
 
     document.getElementById("timer").textContent =
       elapsed.toFixed(2) + " s";
-
   }, 50);
 
-
   reactionDeadline = setTimeout(function() {
-
-    if (!testRunning ||
-        responseLocked ||
-        firstSpeechTime !== null) {
+    if (!testRunning || responseLocked || firstSpeechTime !== null) {
       return;
     }
 
     document.getElementById("timer").textContent =
-      CONFIG.REACTION_LIMIT_SEC.toFixed(2) + " s";
+      Number(CONFIG.REACTION_LIMIT_SEC).toFixed(2) + " s";
 
     lockResponse("REACTION");
 
-  }, CONFIG.REACTION_LIMIT_SEC * 1000);
+  }, Number(CONFIG.REACTION_LIMIT_SEC) * 1000);
 }
 
-
 function stopReactionTimer() {
-
   clearInterval(reactionClock);
   clearTimeout(reactionDeadline);
-
   reactionClock = null;
   reactionDeadline = null;
 }
 
-
-// =====================================================
-// MAX SPEECH
-// =====================================================
-
 function startMaxSpeechTimer() {
-
   clearTimeout(maxSpeechTimer);
 
   maxSpeechTimer = setTimeout(function() {
-
     if (!responseLocked) {
       lockResponse("MAX_SPEECH");
     }
-
-  }, CONFIG.MAX_SPEECH_SEC * 1000);
+  }, Number(CONFIG.MAX_SPEECH_SEC) * 1000);
 }
 
-
-// =====================================================
-// LOCK CORE
-// =====================================================
-
-function lockResponse(reason) {
-
-  if (!testRunning || responseLocked) return;
-
-  responseLocked = true;
-
-  clearTimers();
-
-  try {
-    if (recognition) recognition.abort();
-  } catch(e) {}
-
-
-  let status = "";
-
-  if (reason === "REACTION") {
-
-    status = "RED – REACTION";
-
-    document.getElementById("heard").textContent =
-      "(no answer)";
-
-    document.getElementById("finalAnswer").textContent =
-      "(no answer)";
-
-  } else if (!finalAnswer) {
-
-    status = "RED – NO ANSWER";
-
-  } else if (
-    restartCount > 0 &&
-    CONFIG.RESTART_POLICY === "FAIL"
-  ) {
-
-    status = "RED – RESTART";
-
- } else {
-
-  const expected = WORDS[currentIndex].english;
-
-  if (isCorrectAnswer(finalAnswer, expected)) {
-    status = "PASS";
-  } else {
-   status = "PENDING";
-  }
+function clearTimers() {
+  stopReactionTimer();
+  clearTimeout(maxSpeechTimer);
+  clearTimeout(silenceTimer);
+  maxSpeechTimer = null;
+  silenceTimer = null;
 }
 
-
-  document.getElementById("status").textContent =
-    status;
-
-
-  const reaction =
-    firstSpeechTime !== null && wordStartTime !== null
-      ? (firstSpeechTime - wordStartTime) / 1000
-      : null;
-
-
-finalResults.push({
-  studentId: "Test 01",
-  coreId: WORDS[currentIndex].coreId,
-  english: WORDS[currentIndex].english,
-  source: WORDS[currentIndex].source || "",
-  reaction: reaction,
-  firstAnswer: firstAnswer || "",
-  finalAnswer: finalAnswer || "",
-  restartCount: restartCount,
-  restartPolicy: CONFIG.RESTART_POLICY,
-  result: status
-});
-
-  setTimeout(function() {
-
-    if (!testRunning) return;
-
-    setTimeout(function() {
-
-      if (!testRunning) return;
-
-      currentIndex++;
-
-      prepareWord();
-
-    }, CONFIG.NEXT_DELAY_SEC * 1000);
-
-  }, CONFIG.RESULT_DISPLAY_SEC * 1000);
-}
-
-
 // =====================================================
-// UTIL
+// ANSWER NORMALIZATION
+// Same tolerance as existing IEC written logic:
+// case-insensitive; 4/four, 2/two; ignore hyphen, slash, spaces.
 // =====================================================
+
 function normalizeAnswer(text) {
   return String(text || "")
-    .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, " ");
+    .toLowerCase()
+    .replace(/\b4\b/g, "four")
+    .replace(/\b2\b/g, "two")
+    .replace(/[-/]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, "");
 }
 
 function isCorrectAnswer(answer, expected) {
   return normalizeAnswer(answer) === normalizeAnswer(expected);
 }
+
 function cleanToken(token) {
-
   return String(token || "")
-    .replace(/^[^\w]+|[^\w]+$/g, "");
+    .replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, "");
 }
-
-
-function clearTimers() {
-
-  stopReactionTimer();
-
-  clearTimeout(maxSpeechTimer);
-  clearTimeout(silenceTimer);
-
-  maxSpeechTimer = null;
-  silenceTimer = null;
-}
-
 
 // =====================================================
-// STOP
+// STOP / FINISH / SUBMIT
 // =====================================================
 
 function stopTest() {
-
   testRunning = false;
-
   clearTimers();
+  safeAbortRecognition();
 
-  try {
-    if (recognition) recognition.abort();
-  } catch(e) {}
-
-  document.getElementById("status").textContent =
-    "TEST STOPPED";
-
-  document.getElementById("stopBtn").style.display =
-    "none";
+  document.getElementById("status").textContent = "TEST STOPPED";
+  document.getElementById("stopBtn").style.display = "none";
 }
 
+function finishTest() {
+  testRunning = false;
+  clearTimers();
+  safeAbortRecognition();
 
-// =====================================================
-// FINISH
-// =====================================================
+  document.getElementById("progress").textContent =
+    WORDS.length + " / " + WORDS.length;
+  document.getElementById("vietnamese").textContent = "FINISHED";
+  document.getElementById("timer").textContent = "";
+  document.getElementById("heard").textContent = "";
+  document.getElementById("firstAnswer").textContent = "";
+  document.getElementById("finalAnswer").textContent = "";
+  document.getElementById("restartInfo").textContent = "";
+
+  const total = finalResults.length;
+  const pass = finalResults.filter(function(r) { return r.result === "PASS"; }).length;
+  const pending = finalResults.filter(function(r) { return r.result === "PENDING"; }).length;
+  const red = total - pass - pending;
+
+  document.getElementById("status").innerHTML =
+    "FINAL TEST COMPLETE<br>" +
+    "Total: " + total + " &nbsp; " +
+    '<span style="color:#1565c0;">PASS: ' + pass + "</span> &nbsp; " +
+    '<span style="color:#d32f2f;">RED: ' + red + "</span> &nbsp; " +
+    '<span style="color:#2e7d32;">PENDING: ' + pending + "</span>";
+
+  submitFinalResults();
+  document.getElementById("stopBtn").style.display = "none";
+}
+
 function submitFinalResults() {
+  if (!finalResults.length) return;
 
   const payload = {
     api: "final-submit",
-    studentId: "Test 01",
-    day: Number(WORDS[0] && WORDS[0].day) || 1,
+    studentId: currentStudentId,
+    day: currentDay,
+    sessionId: sessionId,
     results: finalResults
   };
 
   const form = document.createElement("form");
-
   form.method = "POST";
-  form.action =
-    "https://script.google.com/macros/s/AKfycby_Z0_bmGoBN7rULALxCR-D8xRHEWa66-CeJNAcHtRaIuNNoeP7A1HJSpNZc4Xi1OUn/exec";
-
+  form.action = API_BASE;
   form.target = "finalSubmitFrame";
 
   const input = document.createElement("input");
-
   input.type = "hidden";
   input.name = "payload";
   input.value = JSON.stringify(payload);
@@ -1164,49 +1062,34 @@ function submitFinalResults() {
   form.submit();
   form.remove();
 }
-function finishTest() {
 
-  testRunning = false;
-
-  clearTimers();
+function safeAbortRecognition() {
+  if (!recognition) return;
 
   try {
-    if (recognition) recognition.abort();
-  } catch(e) {}
+    recognition.onend = null;
+    recognition.abort();
+  } catch (e) {}
 
-  document.getElementById("progress").textContent =
-    WORDS.length + " / " + WORDS.length;
+  recognition = null;
+}
 
-  document.getElementById("vietnamese").textContent =
-    "FINISHED";
+function makeSessionId() {
+  return [
+    currentStudentId.replace(/\s+/g, "_"),
+    "D" + currentDay,
+    Date.now(),
+    Math.floor(Math.random() * 1000000)
+  ].join("-");
+}
 
-  document.getElementById("timer").textContent = "";
-
-  document.getElementById("heard").textContent = "";
-  document.getElementById("firstAnswer").textContent = "";
-  document.getElementById("finalAnswer").textContent = "";
-  document.getElementById("restartInfo").textContent = "";
-
-const total = finalResults.length;
-const pass = finalResults.filter(r => r.result === "PASS").length;
-const pending = finalResults.filter(r => r.result === "PENDING").length;
-const red = total - pass - pending;
-
-document.getElementById("status").innerHTML =
-    'FINAL TEST COMPLETE<br>' +
-    'Total: ' + total + ' &nbsp; ' +
-    '<span style="color:#1565c0;">PASS: ' + pass + '</span> &nbsp; ' +
-'<span style="color:#d32f2f;">RED: ' + red + '</span> &nbsp; ' +
-'<span style="color:#2e7d32;">PENDING: ' + pending + '</span>';
-submitFinalResults();
-  document.getElementById("stopBtn").style.display =
-    "none";
+function showFatal(message) {
+  const area = document.getElementById("testArea");
+  area.style.display = "block";
+  document.getElementById("status").className = "error";
+  document.getElementById("status").textContent = message;
 }
 
 </script>
-<iframe
-  name="finalSubmitFrame"
-  style="display:none;">
-</iframe>
 </body>
 </html>
